@@ -1,0 +1,18 @@
+{
+  "name": "captionforge",
+  "version": "1.0.0",
+  "description": "LORA Dataset Management System - Desktop app for managing image datasets with AI-powered captioning",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0"
+  },
+  "dependencies": {
+    "tree-kill": "^1.2.2"
+  }
+}

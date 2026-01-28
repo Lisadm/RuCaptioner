@@ -1,0 +1,25 @@
+# CaptionForge - Python Dependencies
+# LORA Dataset Management System
+
+# Web Framework
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+
+# Database
+sqlalchemy>=2.0.0
+aiosqlite>=0.19.0
+
+# Image Processing
+pillow>=10.1.0
+
+# HTTP Client (for vision model backends)
+aiohttp>=3.9.0
+
+# File uploads
+python-multipart>=0.0.6
+
+# Configuration
+pyyaml>=6.0.1
+
+# Data validation (comes with FastAPI but explicit for clarity)
+pydantic>=2.0.0

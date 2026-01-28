@@ -1,0 +1,77 @@
+# CaptionForge Configuration
+# Copy this file to settings.yaml and customize as needed
+
+# Database settings
+database:
+  path: "data/database.db"
+
+# Vision model settings
+vision:
+  # Default backend: "ollama" or "lmstudio"
+  backend: "ollama"
+  
+  # Backend URLs
+  ollama_url: "http://localhost:11434"
+  lmstudio_url: "http://localhost:1234"
+  
+  # Default model for caption generation
+  default_model: "qwen2.5-vl:7b"
+  
+  # Request timeout in seconds
+  timeout_seconds: 120
+  
+  # Number of retries on failure
+  max_retries: 2
+
+# Thumbnail settings
+thumbnails:
+  # Maximum dimension (width or height) in pixels
+  max_size: 256
+  
+  # JPEG quality for thumbnails (1-100)
+  quality: 85
+  
+  # Output format: "webp", "jpeg", or "png"
+  format: "webp"
+  
+  # Cache directory (relative to project root)
+  cache_path: "data/thumbnails"
+
+# Export settings
+export:
+  # Default image format for exports
+  default_format: "jpeg"
+  
+  # Default JPEG quality (1-100)
+  default_quality: 95
+  
+  # Default filename padding (e.g., 6 = 000001.jpg)
+  default_padding: 6
+  
+  # Staging directory for exports
+  staging_path: "data/exports"
+
+# Image processing
+image_processing:
+  # Supported input formats
+  supported_formats:
+    - "jpg"
+    - "jpeg"
+    - "png"
+    - "webp"
+    - "gif"
+    - "bmp"
+  
+  # Maximum file size in MB (files larger than this are skipped)
+  max_file_size_mb: 100
+
+# Server settings
+server:
+  host: "127.0.0.1"
+  port: 8000
+  
+  # Enable auto-reload during development
+  reload: true
+  
+  # Enable debug logging
+  debug: false
