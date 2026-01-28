@@ -1,0 +1,69 @@
+# CaptionForge .gitignore
+
+.env 
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# Node.js
+node_modules/
+package-lock.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Data directories (contents, not structure)
+data/
+data/database.db
+data/thumbnails/*
+data/exports/*
+data/caption_jobs/*
+!data/thumbnails/.gitkeep
+!data/exports/.gitkeep
+!data/caption_jobs/.gitkeep
+
+# Configuration (user-specific)
+config/settings.yaml
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
