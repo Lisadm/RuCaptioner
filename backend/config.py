@@ -18,6 +18,14 @@ class DatabaseConfig(BaseModel):
     path: str = "data/database.db"
 
 
+class VisionPreprocessingConfig(BaseModel):
+    """Vision model preprocessing configuration."""
+    max_resolution: int = 1024
+    maintain_aspect_ratio: bool = True
+    resize_quality: int = 95
+    format: str = "jpeg"
+
+
 class VisionConfig(BaseModel):
     """Vision model configuration."""
     backend: str = "ollama"
@@ -27,6 +35,7 @@ class VisionConfig(BaseModel):
     timeout_seconds: int = 120
     max_retries: int = 2
     max_tokens: int = 4096  # num_predict for Ollama - increase if model exhausts tokens during thinking
+    preprocessing: VisionPreprocessingConfig = Field(default_factory=VisionPreprocessingConfig)
 
 
 class ThumbnailConfig(BaseModel):

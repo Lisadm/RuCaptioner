@@ -25,6 +25,20 @@ vision:
   
   # Maximum tokens for model output (important for thinking models)
   max_tokens: 8192
+  
+  # Image preprocessing for vision models
+  preprocessing:
+    # Maximum resolution (longest side in pixels) - reduces inference time and memory
+    max_resolution: 1024
+    
+    # Maintain aspect ratio when resizing
+    maintain_aspect_ratio: true
+    
+    # JPEG quality for resized images (1-100)
+    resize_quality: 95
+    
+    # Convert all images to this format for consistency ("jpeg" recommended)
+    format: "jpeg"
 
 # Thumbnail settings
 thumbnails:

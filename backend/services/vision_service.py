@@ -2,6 +2,7 @@
 
 import asyncio
 import base64
+import io
 import json
 import logging
 import time
@@ -10,6 +11,7 @@ from pathlib import Path
 from typing import List, Optional, Dict, Any, AsyncGenerator
 
 import aiohttp
+from PIL import Image
 from sqlalchemy.orm import Session
 
 from ..config import get_settings, PROJECT_ROOT
@@ -71,6 +73,7 @@ class VisionService:
         self.db = db
         self.settings = get_settings()
         self._active_jobs: Dict[str, bool] = {}  # job_id -> is_paused
+        self._resize_cache: Dict[str, bytes] = {}  # file_id -> resized image bytes (cleared per job)
     
     async def list_models(self) -> List[VisionModelInfo]:
         """List available vision models."""
@@ -125,7 +128,7 @@ class VisionService:
         
         # Generate caption
         start_time = time.time()
-        result = await self._call_vision_model(backend, model, file_path, prompt)
+        result = await self._call_vision_model(backend, model, file_path, prompt, file_id)
         processing_time = int((time.time() - start_time) * 1000)
         
         logger.debug(f"Vision model raw result: {result}")
@@ -295,6 +298,10 @@ class VisionService:
         if not job:
             return
         
+        # Clear resize cache at start of job
+        self._resize_cache.clear()
+        logger.info(f"Starting caption job {job_id}, resize cache cleared")
+        
         # Only set started_date on first run, not on resume
         if not job.started_date:
             job.started_date = datetime.utcnow()
@@ -449,6 +456,10 @@ class VisionService:
         finally:
             if job_id in self._active_jobs:
                 del self._active_jobs[job_id]
+            # Clear resize cache when job finishes
+            cache_size = len(self._resize_cache)
+            self._resize_cache.clear()
+            logger.info(f"Caption job {job_id} finished, cleared {cache_size} cached images from memory")
             self.db.commit()
     
     async def _check_model_available(self, backend: str, model_name: str) -> bool:
@@ -474,17 +485,101 @@ class VisionService:
             logger.debug(f"Could not check model availability: {e}")
         return False
     
+    def _resize_image_for_vision(self, image_path: Path, file_id: str) -> bytes:
+        """
+        Resize image for vision model inference.
+        Returns JPEG bytes of the resized image.
+        Uses in-memory cache during caption jobs.
+        """
+        # Check cache first
+        if file_id in self._resize_cache:
+            logger.debug(f"Using cached resized image for file {file_id}")
+            return self._resize_cache[file_id]
+        
+        config = self.settings.vision.preprocessing
+        max_size = config.max_resolution
+        quality = config.resize_quality
+        output_format = config.format.upper()
+        
+        try:
+            with Image.open(image_path) as img:
+                # Get original dimensions
+                orig_width, orig_height = img.size
+                
+                # Check if resize is needed
+                if max(orig_width, orig_height) <= max_size:
+                    # Image is already small enough, just convert format if needed
+                    logger.debug(f"Image {file_id} is {orig_width}x{orig_height}, no resize needed")
+                else:
+                    # Calculate new dimensions maintaining aspect ratio
+                    if config.maintain_aspect_ratio:
+                        if orig_width > orig_height:
+                            new_width = max_size
+                            new_height = int(orig_height * (max_size / orig_width))
+                        else:
+                            new_height = max_size
+                            new_width = int(orig_width * (max_size / orig_height))
+                    else:
+                        new_width = new_height = max_size
+                    
+                    logger.debug(f"Resizing image {file_id} from {orig_width}x{orig_height} to {new_width}x{new_height}")
+                    img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                
+                # Convert to RGB if necessary (for JPEG)
+                if output_format == 'JPEG' and img.mode in ('RGBA', 'LA', 'P'):
+                    # Create white background for transparency
+                    background = Image.new('RGB', img.size, (255, 255, 255))
+                    if img.mode == 'P':
+                        img = img.convert('RGBA')
+                    if img.mode in ('RGBA', 'LA'):
+                        background.paste(img, mask=img.split()[-1])
+                    img = background
+                elif img.mode not in ('RGB', 'L'):
+                    img = img.convert('RGB')
+                
+                # Save to bytes buffer
+                buffer = io.BytesIO()
+                save_kwargs = {}
+                if output_format == 'JPEG':
+                    save_kwargs = {'quality': quality, 'optimize': True}
+                elif output_format == 'WEBP':
+                    save_kwargs = {'quality': quality, 'method': 4}
+                elif output_format == 'PNG':
+                    save_kwargs = {'optimize': True}
+                
+                img.save(buffer, format=output_format, **save_kwargs)
+                resized_bytes = buffer.getvalue()
+                
+                # Cache the result
+                self._resize_cache[file_id] = resized_bytes
+                logger.debug(f"Resized image {file_id}: {len(resized_bytes)} bytes")
+                
+                return resized_bytes
+                
+        except Exception as e:
+            logger.error(f"Failed to resize image {image_path}: {e}")
+            # Fallback: return original image bytes
+            with open(image_path, "rb") as f:
+                return f.read()
+    
     async def _call_vision_model(
         self, 
         backend: str, 
         model: str, 
         image_path: Path, 
-        prompt: str
+        prompt: str,
+        file_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """Call vision model to generate caption."""
-        # Read and encode image
-        with open(image_path, "rb") as f:
-            image_data = base64.b64encode(f.read()).decode("utf-8")
+        # Resize image for vision model (with caching)
+        if file_id:
+            image_bytes = self._resize_image_for_vision(image_path, file_id)
+        else:
+            # Single caption generation (not a job), resize without caching
+            image_bytes = self._resize_image_for_vision(image_path, str(image_path))
+        
+        # Encode to base64
+        image_data = base64.b64encode(image_bytes).decode("utf-8")
         
         timeout = aiohttp.ClientTimeout(total=self.settings.vision.timeout_seconds)
         
