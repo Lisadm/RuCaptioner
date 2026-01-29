@@ -22,6 +22,9 @@ vision:
   
   # Number of retries on failure
   max_retries: 2
+  
+  # Maximum tokens for model output (important for thinking models)
+  max_tokens: 8192
 
 # Thumbnail settings
 thumbnails:

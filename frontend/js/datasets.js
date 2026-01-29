@@ -8,61 +8,17 @@ const Datasets = {
     currentCaptionSetId: null,
     draggedImageIds: [], // Track dragged images for adding to datasets
     
-    // Prompt templates for custom caption style
+    // Prompt templates for custom caption style (creative instructions only)
+    // System will automatically append quality assessment and JSON output format requirements
     promptTemplates: {
         natural: `Describe this image in one clear, concise sentence suitable for AI image generation training.
 Focus on: main subject, action/pose, setting/background.
-Be objective and descriptive. Avoid subjective interpretations.
-
-Also assess the image quality for training suitability.
-
-Output format (JSON only, no other text):
-{
-  "caption": "Your caption here",
-  "quality": {
-    "sharpness": 0.0-1.0,
-    "clarity": 0.0-1.0,
-    "composition": 0.0-1.0,
-    "exposure": 0.0-1.0,
-    "overall": 0.0-1.0
-  },
-  "flags": ["list", "of", "any", "quality", "issues"]
-}`,
+Be objective and descriptive. Avoid subjective interpretations.`,
         detailed: `Provide a detailed 2-3 sentence description of this image suitable for AI training.
 Include: subjects, actions, environment, mood, lighting, notable details, composition.
-Be specific and objective.
-
-Also assess the image quality for training suitability.
-
-Output format (JSON only, no other text):
-{
-  "caption": "Your caption here",
-  "quality": {
-    "sharpness": 0.0-1.0,
-    "clarity": 0.0-1.0,
-    "composition": 0.0-1.0,
-    "exposure": 0.0-1.0,
-    "overall": 0.0-1.0
-  },
-  "flags": ["list", "of", "any", "quality", "issues"]
-}`,
+Be specific and objective.`,
         tags: `Generate 15-25 comma-separated lowercase tags describing this image. NOT a sentence - just tags separated by commas.
-Include: subject, gender, pose/action, clothing details, hair color/style, eye color, background/setting, lighting, colors, mood.
-
-Also assess the image quality for training suitability.
-
-Output format (JSON only, no other text):
-{
-  "caption": "Your comma-separated tags here",
-  "quality": {
-    "sharpness": 0.0-1.0,
-    "clarity": 0.0-1.0,
-    "composition": 0.0-1.0,
-    "exposure": 0.0-1.0,
-    "overall": 0.0-1.0
-  },
-  "flags": ["list", "of", "any", "quality", "issues"]
-}`
+Include: subject, gender, pose/action, clothing details, hair color/style, eye color, background/setting, lighting, colors, mood.`
     },
     
     /**

@@ -594,34 +594,53 @@ class VisionService:
         
         return self._parse_caption_response(response_text)
     
-    def _build_prompt(
-        self, 
-        style: str, 
+    def _build_creative_prompt(
+        self,
+        style: str,
         max_length: Optional[int] = None,
         custom_prompt: Optional[str] = None,
         trigger_phrase: Optional[str] = None
     ) -> str:
-        """Build the prompt for caption generation."""
-        logger.debug(f"_build_prompt called: style={style}, custom_prompt={custom_prompt[:50] if custom_prompt else None}...")
-        
+        """Build the creative part of the prompt (user-customizable)."""
+        # Use custom prompt if provided
         if custom_prompt:
             logger.info(f"Using custom prompt ({len(custom_prompt)} chars)")
-            return custom_prompt
-        
-        if style == "custom":
-            logger.warning(f"Style is 'custom' but no custom_prompt provided! Falling back to natural.")
-        
-        length_constraint = f"Maximum length: {max_length} characters. " if max_length else ""
-        
-        # For tags style, we need a different trigger instruction format
-        if trigger_phrase:
-            tags_trigger_instruction = f'IMPORTANT: The caption MUST start with "{trigger_phrase}" as the first tag.\n'
-            sentence_trigger_instruction = f'IMPORTANT: The caption MUST begin with "{trigger_phrase}" followed by a description of the image.\n'
+            creative = custom_prompt
         else:
-            tags_trigger_instruction = ""
-            sentence_trigger_instruction = ""
+            # Build standard prompt based on style
+            if style == "custom":
+                logger.warning(f"Style is 'custom' but no custom_prompt provided! Falling back to natural.")
+                style = "natural"
+            
+            prompts = {
+                "natural": "Describe this image in one clear, concise sentence suitable for AI image generation training.\nFocus on: main subject, action/pose, setting/background.\nBe objective and descriptive. Avoid subjective interpretations.",
+                "detailed": "Provide a detailed 2-3 sentence description of this image suitable for AI training.\nInclude: subjects, actions, environment, mood, lighting, notable details, composition.\nBe specific and objective.",
+                "tags": "Generate 15-25 comma-separated lowercase tags describing this image. NOT a sentence - just tags separated by commas.\nInclude: subject, gender, pose/action, clothing details, hair color/style, eye color, background/setting, lighting, colors, mood."
+            }
+            creative = prompts.get(style, prompts["natural"])
         
-        quality_json = """{
+        # Add trigger phrase instructions if provided
+        if trigger_phrase:
+            if style == "tags" or (custom_prompt and "tag" in custom_prompt.lower()):
+                # Tags format - trigger phrase as first tag
+                trigger_instruction = f'\n\nIMPORTANT: The caption MUST start with "{trigger_phrase}" as the first tag.\nExample: "{trigger_phrase}, woman, brown hair, white dress, studio, soft lighting"'
+            else:
+                # Sentence format - trigger phrase at beginning
+                trigger_instruction = f'\n\nIMPORTANT: The caption MUST begin with "{trigger_phrase}" followed by a description of the image.'
+            creative += trigger_instruction
+        
+        # Add length constraint if specified
+        if max_length:
+            creative += f"\n\nMaximum length: {max_length} characters."
+        
+        return creative
+    
+    def _build_output_directive(self) -> str:
+        """Build the system output directive (enforced by system, not user-editable)."""
+        return """\n\nAlso assess the image quality for training suitability.
+
+Output format (JSON only, no other text):
+{
   "caption": "Your caption here",
   "quality": {
     "sharpness": 0.0-1.0,
@@ -632,40 +651,24 @@ class VisionService:
   },
   "flags": ["list", "of", "any", "quality", "issues"]
 }"""
+    
+    def _build_prompt(
+        self, 
+        style: str, 
+        max_length: Optional[int] = None,
+        custom_prompt: Optional[str] = None,
+        trigger_phrase: Optional[str] = None
+    ) -> str:
+        """Build the complete prompt for caption generation."""
+        logger.debug(f"_build_prompt called: style={style}, custom_prompt={custom_prompt[:50] if custom_prompt else None}...")
         
-        # Example for tags with trigger phrase
-        tags_example = f'Example: "{trigger_phrase}, woman, brown hair, white dress, studio, soft lighting"' if trigger_phrase else 'Example: "woman, brown hair, white dress, studio, soft lighting"'
+        # Build creative part (user-customizable)
+        creative_prompt = self._build_creative_prompt(style, max_length, custom_prompt, trigger_phrase)
         
-        prompts = {
-            "natural": f"""{sentence_trigger_instruction}Describe this image in one clear, concise sentence suitable for AI image generation training.
-Focus on: main subject, action/pose, setting/background.
-Be objective and descriptive. Avoid subjective interpretations.
-{length_constraint}
-Also assess the image quality for training suitability.
-
-Output format (JSON only, no other text):
-{quality_json}""",
-
-            "detailed": f"""{sentence_trigger_instruction}Provide a detailed 2-3 sentence description of this image suitable for AI training.
-Include: subjects, actions, environment, mood, lighting, notable details, composition.
-Be specific and objective.
-{length_constraint}
-Also assess the image quality for training suitability.
-
-Output format (JSON only, no other text):
-{quality_json}""",
-
-            "tags": f"""{tags_trigger_instruction}Generate 15-25 comma-separated lowercase tags describing this image. NOT a sentence - just tags separated by commas.
-{tags_example}
-Include: subject, gender, pose/action, clothing details, hair color/style, eye color, background/setting, lighting, colors, mood.
-{length_constraint}
-Also assess the image quality for training suitability.
-
-Output format (JSON only, no other text):
-{quality_json}"""
-        }
+        # Append system output directive (always enforced)
+        output_directive = self._build_output_directive()
         
-        return prompts.get(style, prompts["natural"])
+        return creative_prompt + output_directive
     
     def _parse_caption_response(self, response_text: str) -> Dict[str, Any]:
         """Parse the caption response from the model."""
