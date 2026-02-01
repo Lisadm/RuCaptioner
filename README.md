@@ -175,4 +175,6 @@ Apache 2.0 - См. файл [LICENSE](LICENSE).
 
 ## Ссылки
 
+- [Telegram Channel](https://t.me/d2_cult_flow) - Официальный канал обновлений и поддержки
 - [QUICKSTART.md](QUICKSTART.md) - Быстрый старт и инструкция
+- [API Documentation](http://localhost:8675/docs) - Документация API
