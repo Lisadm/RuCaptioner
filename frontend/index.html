@@ -55,9 +55,16 @@
                 <ul class="navbar-nav align-items-center">
                     <li class="nav-item">
                         <a class="nav-link text-white d-flex align-items-center" href="#"
-                            onclick="if(window.electronAPI) { window.electronAPI.openExternal('https://t.me/d2_cult_flow'); } else { alert('Please restart the application to enable external links.'); } return false;"
+                            onclick="if(window.electronAPI) { window.electronAPI.openExternal('https://t.me/d2_cult_flow'); } return false;"
                             title="Telegram Channel: @d2_cult_flow">
                             <i class="bi bi-telegram fs-5"></i>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white d-flex align-items-center" href="#"
+                            onclick="if(window.electronAPI) { window.electronAPI.openExternal('https://github.com/Lisadm/RuCaptioner/tree/main'); } return false;"
+                            title="GitHub Repository">
+                            <i class="bi bi-github fs-5"></i>
                         </a>
                     </li>
                     <li class="nav-item">
