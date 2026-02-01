@@ -160,4 +160,3 @@ Apache 2.0 - См. файл [LICENSE](LICENSE).
 ## Ссылки
 
 - [QUICKSTART.md](QUICKSTART.md) - Быстрый старт и инструкция
-- [API Documentation](http://localhost:8675/docs) - Документация API
