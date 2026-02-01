@@ -121,6 +121,8 @@ class CaptionService:
                 caption.quality_score = data.quality_score
             if quality_flags_json is not None:
                 caption.quality_flags = quality_flags_json
+            if data.caption_ru is not None:
+                caption.caption_ru = data.caption_ru
         else:
             # Create new
             caption = Caption(
@@ -130,7 +132,8 @@ class CaptionService:
                 source=data.source,
                 vision_model=data.vision_model,
                 quality_score=data.quality_score,
-                quality_flags=quality_flags_json
+                quality_flags=quality_flags_json,
+                caption_ru=data.caption_ru
             )
             self.db.add(caption)
             
@@ -154,24 +157,61 @@ class CaptionService:
                     DatasetFile.dataset_id == caption_set.dataset_id
                 ).first()
                 if dataset_file:
-                    dataset_file.quality_score = data.quality_score
                     if quality_flags_json is not None:
                         dataset_file.quality_flags = quality_flags_json
                     self.db.commit()
         
+        # [ANTI-AGENT FEATURE] Sync to disk immediately
+        self._sync_to_disk(data.file_id, data.text)
+        
         return caption
     
-    def update_caption(self, caption_id: str, text: str) -> Optional[Caption]:
+    def _sync_to_disk(self, file_id: str, text: str) -> None:
+        """Write caption text to a .txt file alongside the image."""
+        try:
+            import os
+            # Get file path
+            tracked_file = self.db.query(TrackedFile).filter(TrackedFile.id == file_id).first()
+            if not tracked_file or not tracked_file.absolute_path:
+                logger.warning(f"Could not sync caption to disk: File {file_id} not found or has no path")
+                return
+            
+            image_path = tracked_file.absolute_path
+            txt_path = os.path.splitext(image_path)[0] + ".txt"
+            
+            with open(txt_path, 'w', encoding='utf-8') as f:
+                f.write(text)
+                
+            logger.info(f"Synced caption to file: {txt_path}")
+            
+            # [ANTI-AGENT FEATURE] Update the database record for Folders view
+            # The 'Folders' view displays 'imported_caption', so we must keep it in sync
+            tracked_file.imported_caption = text
+            self.db.commit()
+            self.db.refresh(tracked_file)
+            logger.info(f"Updated imported_caption for file {file_id}")
+            
+        except Exception as e:
+            logger.error(f"Failed to sync caption to disk: {e}")
+
+    def update_caption(self, caption_id: str, text: str, caption_ru: Optional[str] = None) -> Optional[Caption]:
         """Update a caption's text."""
         caption = self.get_caption(caption_id)
         if not caption:
             return None
         
         caption.text = text
+        if caption_ru is not None:
+            caption.caption_ru = caption_ru
+        
         caption.source = "manual"  # Mark as manually edited
         
         self.db.commit()
         self.db.refresh(caption)
+        
+        # [ANTI-AGENT FEATURE] Sync to disk immediately
+        self._sync_to_disk(caption.file_id, text)
+        
         return caption
     
     def delete_caption(self, caption_id: str) -> bool:

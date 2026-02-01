@@ -1,13 +1,13 @@
-# CaptionFoundry
+# RuCaptioner
 
 **AI-Powered Dataset Management for LORA Training** - A desktop application for preparing high-quality image datasets with AI-assisted captioning, designed specifically for LORA and fine-tuning workflows.
 
-![CaptionFoundry Screenshot](documentation/screenshots/screenshot1.png)
+![RuCaptioner Screenshot](documentation/screenshots/screenshot1.png)
 *Caption editing interface with AI-generated descriptions, quality assessment, and batch processing capabilities*
 
-## What is CaptionFoundry?
+## What is RuCaptioner?
 
-CaptionFoundry streamlines the tedious process of preparing image datasets for AI model training. Instead of manually captioning hundreds of images, you can:
+RuCaptioner streamlines the tedious process of preparing image datasets for AI model training. Instead of manually captioning hundreds of images, you can:
 
 1. **Organize** your images into datasets with drag-and-drop simplicity
 2. **Auto-caption** entire datasets using local vision AI models
@@ -22,7 +22,7 @@ The entire workflow runs locally on your machine - no cloud services, no API cos
 - **Thumbnail Browser** - Fast thumbnail grid with WebP compression and lazy loading
 - **Dataset Management** - Organize images into named datasets with descriptions
 - **Caption Sets** - Multiple caption styles per dataset (booru tags, natural language, etc.)
-- **AI Auto-Captioning** - Generate captions using local Ollama or LM Studio vision models
+- **AI Auto-Captioning** - Generate captions using local LM Studio vision models
 - **Quality Scoring** - Automatic quality assessment with detailed flags
 - **Manual Editing** - Click any image to edit its caption with real-time preview
 - **Smart Export** - Export with sequential numbering, format conversion, metadata stripping
@@ -34,7 +34,7 @@ The entire workflow runs locally on your machine - no cloud services, no API cos
 - **Python 3.10+** - [Download](https://python.org)
 - **Node.js 18+** - [Download](https://nodejs.org)
 - **Vision Model Backend** (at least one):
-  - [Ollama](https://ollama.ai/) with a vision model
+  - [LM Studio](https://lmstudio.ai/) with a vision model server running
   - [LM Studio](https://lmstudio.ai/) with a vision model loaded
 
 > **New to vision models?** See [QUICKSTART.md](QUICKSTART.md) for detailed setup instructions.
@@ -108,8 +108,8 @@ Settings are stored in config/settings.yaml:
 
 ```yaml
 vision:
-  backend: ollama              # or "lmstudio"
-  ollama_url: http://localhost:11434
+  backend: lmstudio
+  lmstudio_url: http://localhost:1234
   lmstudio_url: http://localhost:1234
   default_model: qwen/qwen3-vl-4b
   max_tokens: 8192             # Important for thinking models
@@ -138,7 +138,7 @@ CaptionFoundry uses a hybrid architecture optimized for desktop use:
 - **Desktop Shell**: Electron (provides native file dialogs, drag-drop paths)
 - **Backend**: Python FastAPI (manages data, proxies vision AI requests)
 - **Database**: SQLite with SQLAlchemy 2.x ORM
-- **Vision AI**: Ollama or LM Studio (local, no cloud)
+- **Vision AI**: LM Studio (local, no cloud)
 
 The Electron shell spawns the Python backend as a child process and loads the frontend from the backend server.
 
@@ -197,7 +197,7 @@ Once running, visit http://localhost:8675/docs for interactive Swagger documenta
 
 ### "No vision models available"
 
-Make sure Ollama or LM Studio is running with a vision model loaded. See [QUICKSTART.md](QUICKSTART.md) for setup instructions.
+Make sure LM Studio is running with a vision model loaded (Server Mode). See [QUICKSTART.md](QUICKSTART.md) for setup instructions.
 
 ### Captions are cut off or incomplete
 
@@ -217,7 +217,7 @@ Apache 2.o - See [LICENSE](LICENSE) file for details.
 
 ## See Also
 
-- [QUICKSTART.md](QUICKSTART.md) - Detailed setup guide with Ollama/LM Studio instructions
+- [QUICKSTART.md](QUICKSTART.md) - Detailed setup guide with LM Studio instructions
 - [API Documentation](http://localhost:8675/docs) - Interactive API reference (when running)
 
 ## Wanna be nice?

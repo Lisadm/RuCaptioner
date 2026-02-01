@@ -10,7 +10,8 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..schemas import (
     VisionModelInfo, VisionGenerateRequest, VisionGenerateResponse,
-    AutoCaptionJobCreate, CaptionJobResponse, CaptionJobProgress
+    AutoCaptionJobCreate, CaptionJobResponse, CaptionJobProgress,
+    TranslateRequest, TranslateResponse
 )
 from ..services.vision_service import VisionService
 
@@ -39,6 +40,8 @@ async def generate_caption(
             max_length=request.max_length,
             vision_model=request.vision_model,
             vision_backend=request.vision_backend,
+            template_id=request.template_id,
+            seed=request.seed,
             custom_prompt=request.custom_prompt,
             trigger_phrase=request.trigger_phrase
         )
@@ -50,6 +53,31 @@ async def generate_caption(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Caption generation failed: {str(e)}"
+        )
+
+
+@router.post("/translate", response_model=TranslateResponse)
+async def translate_text(
+    request: TranslateRequest,
+    db: Session = Depends(get_db)
+):
+    """Translate text between Russian and English using the vision model."""
+    service = VisionService(db)
+    try:
+        result = await service.translate_text(
+            text=request.text,
+            vision_model=request.vision_model,
+            vision_backend=request.vision_backend,
+            direction=request.direction or "ru_to_en"
+        )
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        logger.exception("Error translating text")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Translation failed: {str(e)}"
         )
 
 
@@ -139,6 +167,9 @@ async def start_auto_caption_job(
             caption_set_id=caption_set_id,
             vision_model=request.vision_model,
             vision_backend=request.vision_backend,
+            template_id=request.template_id,
+            seed=request.seed,
+            seed_mode=request.seed_mode,
             overwrite_existing=request.overwrite_existing
         )
         return job

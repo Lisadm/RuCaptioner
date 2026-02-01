@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import (
-    Boolean, Column, DateTime, Float, ForeignKey, Integer, 
+    Boolean, Column, DateTime, Float, ForeignKey, Integer, BigInteger,
     String, Text, Index, UniqueConstraint
 )
 from sqlalchemy.orm import relationship
@@ -165,6 +165,7 @@ class CaptionSet(Base):
     max_length = Column(Integer, nullable=True)  # Max caption length
     custom_prompt = Column(Text, nullable=True)  # Custom prompt for vision model
     trigger_phrase = Column(String(500), nullable=True)  # Prefix for captions (e.g., "Nova Chorus, a woman")
+    template_id = Column(String(50), nullable=True)  # Predefined prompt template
     
     # Statistics (cached)
     caption_count = Column(Integer, default=0)
@@ -203,6 +204,9 @@ class Caption(Base):
     quality_score = Column(Float, nullable=True)
     quality_flags = Column(Text, nullable=True)  # JSON array
     
+    # Translation
+    caption_ru = Column(Text, nullable=True)
+    
     # Timestamps
     created_date = Column(DateTime, default=datetime.utcnow)
     updated_date = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -227,8 +231,11 @@ class CaptionJob(Base):
     
     # Job configuration
     vision_model = Column(String(100), nullable=False)
-    vision_backend = Column(String(20), default="ollama")  # ollama or lmstudio
+    vision_backend = Column(String(20), default="lmstudio")  # ollama or lmstudio
     overwrite_existing = Column(Boolean, default=False)
+    template_id = Column(String(50), nullable=True)
+    seed = Column(BigInteger, nullable=True)
+    seed_mode = Column(String(20), nullable=True) # fixed, increment, random
     
     # Progress tracking
     status = Column(String(20), default="pending")  # pending, running, paused, completed, failed, cancelled

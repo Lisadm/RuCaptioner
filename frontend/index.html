@@ -1,64 +1,79 @@
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="dark">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CaptionFoundry - LORA Dataset Manager</title>
-    
+    <title>RuCaptioner - LORA Dataset Manager</title>
+
     <!-- Bootstrap 5.3 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css" rel="stylesheet">
-    
+
     <!-- Custom Styles -->
     <link href="css/styles.css" rel="stylesheet">
 </head>
+
 <body>
     <!-- Top Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-secondary">
         <div class="container-fluid">
             <a class="navbar-brand d-flex align-items-center" href="#">
-                <i class="bi bi-images me-2 text-primary"></i>
-                <span class="fw-bold">CaptionFoundry</span>
+                <img src="img/logo.png" alt="Logo" height="32" class="me-2 rounded">
+                <span class="fw-bold">RuCaptioner</span>
             </a>
-            
+
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            
+
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
+                <ul class="navbar-nav me-auto align-items-center">
                     <li class="nav-item">
-                        <a class="nav-link active" href="#" data-view="folders">
-                            <i class="bi bi-folder me-1"></i> Folders
+                        <a class="nav-link active d-flex align-items-center" href="#" data-view="folders">
+                            <i class="bi bi-folder me-2"></i>Folders
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#" data-view="datasets">
-                            <i class="bi bi-collection me-1"></i> Datasets
+                        <a class="nav-link d-flex align-items-center" href="#" data-view="datasets">
+                            <i class="bi bi-collection me-2"></i>Datasets
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#" data-view="jobs">
-                            <i class="bi bi-cpu me-1"></i> Jobs
+                        <a class="nav-link d-flex align-items-center" href="#" data-view="jobs">
+                            <i class="bi bi-cpu me-2"></i>Jobs
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#" data-view="exports">
-                            <i class="bi bi-box-arrow-up-right me-1"></i> Exports
+                        <a class="nav-link d-flex align-items-center" href="#" data-view="exports">
+                            <i class="bi bi-box-arrow-up-right me-2"></i>Exports
                         </a>
                     </li>
                 </ul>
-                
-                <ul class="navbar-nav">
+
+                <ul class="navbar-nav align-items-center">
                     <li class="nav-item">
-                        <a class="nav-link" href="#" id="settingsBtn">
-                            <i class="bi bi-gear"></i>
+                        <a class="nav-link text-white d-flex align-items-center" href="#"
+                            onclick="if(window.electronAPI) { window.electronAPI.openExternal('https://t.me/d2_cult_flow'); } else { alert('Please restart the application to enable external links.'); } return false;"
+                            title="Telegram Channel: @d2_cult_flow">
+                            <i class="bi bi-telegram fs-5"></i>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <span class="nav-link text-muted" id="connectionStatus">
-                            <i class="bi bi-circle-fill text-danger"></i> Disconnected
+                        <a class="nav-link text-info d-flex align-items-center" href="#" data-bs-toggle="modal"
+                            data-bs-target="#infoModal" title="Information & Hotkeys">
+                            <i class="bi bi-info-circle fs-5"></i>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center" href="#" id="settingsBtn">
+                            <i class="bi bi-gear fs-5"></i>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <span class="nav-link text-muted d-flex align-items-center" id="connectionStatus">
+                            <i class="bi bi-circle-fill text-danger me-2" style="font-size: 0.75rem;"></i>Disconnected
                         </span>
                     </li>
                 </ul>
@@ -99,7 +114,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="col-md-8 col-lg-9">
                     <!-- Image Browser Panel -->
                     <div class="card bg-dark border-secondary">
@@ -130,10 +145,11 @@
                                 </div>
                                 <div class="input-group input-group-sm" style="max-width: 150px;">
                                     <span class="input-group-text"><i class="bi bi-grid"></i></span>
-                                    <input type="range" class="form-range p-2" id="thumbnailSize" min="100" max="300" value="180">
+                                    <input type="range" class="form-range p-2" id="thumbnailSize" min="100" max="300"
+                                        value="180">
                                 </div>
                             </div>
-                            
+
                             <!-- Image Grid -->
                             <div class="image-grid" id="imageGrid">
                                 <div class="text-center text-muted py-5">
@@ -141,7 +157,7 @@
                                     <p>Select a folder to view images</p>
                                 </div>
                             </div>
-                            
+
                             <!-- Pagination -->
                             <nav id="imagePagination" class="mt-3" style="display: none;">
                                 <ul class="pagination pagination-sm justify-content-center">
@@ -176,7 +192,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="col-md-8 col-lg-9">
                     <!-- Dataset Detail Panel -->
                     <div id="datasetDetailPanel">
@@ -190,7 +206,8 @@
                                     <button class="btn btn-sm btn-outline-secondary" id="editDatasetBtn" disabled>
                                         <i class="bi bi-pencil"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-outline-info" id="cloneDatasetBtn" disabled title="Clone dataset">
+                                    <button class="btn btn-sm btn-outline-info" id="cloneDatasetBtn" disabled
+                                        title="Clone dataset">
                                         <i class="bi bi-files"></i>
                                     </button>
                                     <button class="btn btn-sm btn-outline-success" id="exportDatasetBtn" disabled>
@@ -204,7 +221,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Caption Sets -->
                         <div class="card bg-dark border-secondary mb-3">
                             <div class="card-header d-flex justify-content-between align-items-center">
@@ -221,13 +238,14 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Dataset Images -->
                         <div class="card bg-dark border-secondary position-relative">
                             <div class="card-header d-flex justify-content-between align-items-center">
                                 <span><i class="bi bi-images me-2"></i>Dataset Images</span>
                                 <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-outline-info" id="addFromFolderBtn" disabled title="Add images from tracked folder">
+                                    <button class="btn btn-outline-info" id="addFromFolderBtn" disabled
+                                        title="Add images from tracked folder">
                                         <i class="bi bi-folder-plus"></i> Add from Folder
                                     </button>
                                 </div>
@@ -310,13 +328,15 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Display Name</label>
-                            <input type="text" class="form-control" id="editFolderName" placeholder="Custom display name">
+                            <input type="text" class="form-control" id="editFolderName"
+                                placeholder="Custom display name">
                             <small class="text-muted">Leave empty to use folder name from path</small>
                         </div>
                         <div class="form-check mb-3">
                             <input type="checkbox" class="form-check-input" id="editFolderEnabled" checked>
                             <label class="form-check-label" for="editFolderEnabled">Track this folder</label>
-                            <small class="text-muted d-block">Uncheck to temporarily stop tracking without removing the folder</small>
+                            <small class="text-muted d-block">Uncheck to temporarily stop tracking without removing the
+                                folder</small>
                         </div>
                     </form>
                 </div>
@@ -343,11 +363,14 @@
                         <div class="mb-3">
                             <label class="form-label">Folder Path</label>
                             <div class="input-group">
-                                <input type="text" class="form-control" id="folderPath" placeholder="C:\path\to\images" required>
-                                <button class="btn btn-outline-secondary" type="button" id="browsePathBtn" title="Browse for folder">
+                                <input type="text" class="form-control" id="folderPath" placeholder="C:\path\to\images"
+                                    required>
+                                <button class="btn btn-outline-secondary" type="button" id="browsePathBtn"
+                                    title="Browse for folder">
                                     <i class="bi bi-folder2-open"></i>
                                 </button>
-                                <button class="btn btn-outline-secondary" type="button" id="pastePathBtn" title="Paste from clipboard">
+                                <button class="btn btn-outline-secondary" type="button" id="pastePathBtn"
+                                    title="Paste from clipboard">
                                     <i class="bi bi-clipboard"></i>
                                 </button>
                             </div>
@@ -452,8 +475,10 @@
                         </div>
                         <div class="form-check mb-3">
                             <input type="checkbox" class="form-check-input" id="cloneIncludeCaptions">
-                            <label class="form-check-label" for="cloneIncludeCaptions">Include caption sets and captions</label>
-                            <small class="text-muted d-block">If checked, all caption sets and their generated captions will be copied to the new dataset</small>
+                            <label class="form-check-label" for="cloneIncludeCaptions">Include caption sets and
+                                captions</label>
+                            <small class="text-muted d-block">If checked, all caption sets and their generated captions
+                                will be copied to the new dataset</small>
                         </div>
                     </form>
                 </div>
@@ -479,20 +504,21 @@
                     <p class="text-muted mb-3">
                         <span id="selectedFilesCount">0</span> file(s) selected
                     </p>
-                    
+
                     <!-- Mode Toggle -->
                     <div class="btn-group w-100 mb-3" role="group">
-                        <input type="radio" class="btn-check" name="datasetMode" id="modeSelectExisting" autocomplete="off" checked>
+                        <input type="radio" class="btn-check" name="datasetMode" id="modeSelectExisting"
+                            autocomplete="off" checked>
                         <label class="btn btn-outline-primary" for="modeSelectExisting">
                             <i class="bi bi-list-ul me-1"></i>Select Existing
                         </label>
-                        
+
                         <input type="radio" class="btn-check" name="datasetMode" id="modeCreateNew" autocomplete="off">
                         <label class="btn btn-outline-primary" for="modeCreateNew">
                             <i class="bi bi-plus-circle me-1"></i>Create New
                         </label>
                     </div>
-                    
+
                     <!-- Select Existing Dataset Section -->
                     <div id="selectExistingSection">
                         <div class="mb-3">
@@ -502,16 +528,19 @@
                             </select>
                         </div>
                     </div>
-                    
+
                     <!-- Create New Dataset Section -->
                     <div id="createNewSection" style="display: none;">
                         <div class="mb-3">
-                            <label for="newDatasetName" class="form-label">Dataset Name <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="newDatasetName" placeholder="Enter dataset name" required>
+                            <label for="newDatasetName" class="form-label">Dataset Name <span
+                                    class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="newDatasetName" placeholder="Enter dataset name"
+                                required>
                         </div>
                         <div class="mb-3">
                             <label for="newDatasetDescription" class="form-label">Description (Optional)</label>
-                            <textarea class="form-control" id="newDatasetDescription" rows="2" placeholder="Enter description"></textarea>
+                            <textarea class="form-control" id="newDatasetDescription" rows="2"
+                                placeholder="Enter description"></textarea>
                         </div>
                     </div>
                 </div>
@@ -540,28 +569,43 @@
                             <input type="text" class="form-control" id="captionSetName" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Caption Style</label>
-                            <select class="form-select" id="captionSetStyle">
-                                <option value="natural">Natural (sentence description)</option>
-                                <option value="detailed">Detailed (comprehensive description)</option>
-                                <option value="tags">Tags (comma-separated)</option>
+                            <label class="form-label">Prompt Template</label>
+                            <select class="form-select" id="captionSetTemplate">
+                                <option value="detailed_p">🖼️ Detailed Description (Currated)</option>
+                                <option value="ultra">🖼️ Ultra Detailed Description (Currated)</option>
+                                <option value="cinematic">🎬 Cinematic Description (Currated)</option>
                                 <option value="custom">Custom (write your own prompt)</option>
                             </select>
                         </div>
                         <div class="mb-3" id="customPromptGroup" style="display: none;">
                             <label class="form-label">Custom Vision Model Prompt</label>
-                            <div class="btn-group btn-group-sm mb-2" role="group">
-                                <button type="button" class="btn btn-outline-secondary copy-template-btn" data-template="natural">Copy Natural</button>
-                                <button type="button" class="btn btn-outline-secondary copy-template-btn" data-template="detailed">Copy Detailed</button>
-                                <button type="button" class="btn btn-outline-secondary copy-template-btn" data-template="tags">Copy Tags</button>
-                            </div>
-                            <textarea class="form-control font-monospace" id="captionSetCustomPrompt" rows="8" placeholder="Write your prompt for the vision model here..."></textarea>
-                            <small class="text-muted">The vision model will use this prompt to generate captions. Use {trigger_phrase} to include the trigger phrase.</small>
+                            <textarea class="form-control font-monospace" id="captionSetCustomPrompt" rows="8"
+                                placeholder="Write your prompt for the vision model here..."></textarea>
+                            <small class="text-muted">The vision model will use this prompt to generate captions. Use
+                                {trigger_phrase} to include the trigger phrase.</small>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Trigger Phrase / Caption Prefix (optional)</label>
-                            <input type="text" class="form-control" id="captionSetTriggerPhrase" placeholder="e.g., Nova Chorus, a woman">
-                            <small class="text-muted">All captions will start with this phrase (great for LORA trigger words)</small>
+                            <input type="text" class="form-control" id="captionSetTriggerPhrase"
+                                placeholder="e.g., Nova Chorus, a woman">
+                            <small class="text-muted">All captions will start with this phrase (great for LORA trigger
+                                words)</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Seed Management</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-dark text-light border-secondary">Seed</span>
+                                <input type="number" class="form-control bg-dark text-light border-secondary"
+                                    id="captionSetSeed" placeholder="Random if empty">
+                                <select class="form-select bg-dark text-light border-secondary" id="captionSetSeedMode"
+                                    style="max-width: 120px;">
+                                    <option value="fixed">Fixed</option>
+                                    <option value="increment">Increment</option>
+                                    <option value="random">Random</option>
+                                </select>
+                            </div>
+                            <small class="text-muted">Seed for vision model generation. Increment/Random applies per
+                                button press.</small>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Max Length (optional)</label>
@@ -597,32 +641,32 @@
                             <input type="text" class="form-control" id="editCaptionSetName" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Caption Style</label>
-                            <select class="form-select" id="editCaptionSetStyle">
-                                <option value="natural">Natural (sentence description)</option>
-                                <option value="detailed">Detailed (comprehensive description)</option>
-                                <option value="tags">Tags (comma-separated)</option>
+                            <label class="form-label">Prompt Template</label>
+                            <select class="form-select" id="editCaptionSetTemplate">
+                                <option value="detailed_p">🖼️ Detailed Description (Currated)</option>
+                                <option value="ultra">🖼️ Ultra Detailed Description (Currated)</option>
+                                <option value="cinematic">🎬 Cinematic Description (Currated)</option>
                                 <option value="custom">Custom (write your own prompt)</option>
                             </select>
                         </div>
                         <div class="mb-3" id="editCustomPromptGroup" style="display: none;">
                             <label class="form-label">Custom Vision Model Prompt</label>
-                            <div class="btn-group btn-group-sm mb-2" role="group">
-                                <button type="button" class="btn btn-outline-secondary edit-copy-template-btn" data-template="natural">Copy Natural</button>
-                                <button type="button" class="btn btn-outline-secondary edit-copy-template-btn" data-template="detailed">Copy Detailed</button>
-                                <button type="button" class="btn btn-outline-secondary edit-copy-template-btn" data-template="tags">Copy Tags</button>
-                            </div>
-                            <textarea class="form-control font-monospace" id="editCaptionSetCustomPrompt" rows="8" placeholder="Write your prompt for the vision model here..."></textarea>
-                            <small class="text-muted">The vision model will use this prompt to generate captions. Use {trigger_phrase} to include the trigger phrase.</small>
+                            <textarea class="form-control font-monospace" id="editCaptionSetCustomPrompt" rows="8"
+                                placeholder="Write your prompt for the vision model here..."></textarea>
+                            <small class="text-muted">The vision model will use this prompt to generate captions. Use
+                                {trigger_phrase} to include the trigger phrase.</small>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Trigger Phrase / Caption Prefix (optional)</label>
-                            <input type="text" class="form-control" id="editCaptionSetTriggerPhrase" placeholder="e.g., Nova Chorus, a woman">
-                            <small class="text-muted">All captions will start with this phrase (great for LORA trigger words)</small>
+                            <input type="text" class="form-control" id="editCaptionSetTriggerPhrase"
+                                placeholder="e.g., Nova Chorus, a woman">
+                            <small class="text-muted">All captions will start with this phrase (great for LORA trigger
+                                words)</small>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Max Length (optional)</label>
-                            <input type="number" class="form-control" id="editCaptionSetMaxLength" placeholder="No limit">
+                            <input type="number" class="form-control" id="editCaptionSetMaxLength"
+                                placeholder="No limit">
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Description (optional)</label>
@@ -657,19 +701,23 @@
                                 <div class="mb-3">
                                     <label class="form-label">Export Type</label>
                                     <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="exportType" id="exportTypeZip" value="zip" checked>
+                                        <input class="form-check-input" type="radio" name="exportType"
+                                            id="exportTypeZip" value="zip" checked>
                                         <label class="form-check-label" for="exportTypeZip">ZIP Archive</label>
                                     </div>
                                     <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="exportType" id="exportTypeFolder" value="folder">
+                                        <input class="form-check-input" type="radio" name="exportType"
+                                            id="exportTypeFolder" value="folder">
                                         <label class="form-check-label" for="exportTypeFolder">Folder</label>
                                     </div>
                                 </div>
                                 <div class="mb-3" id="exportPathGroup" style="display: none;">
                                     <label class="form-label">Export Path</label>
                                     <div class="input-group">
-                                        <input type="text" class="form-control droppable-path" id="exportPath" placeholder="Enter or drag folder here">
-                                        <button class="btn btn-outline-secondary" type="button" id="browseExportPath" title="Browse for folder">
+                                        <input type="text" class="form-control droppable-path" id="exportPath"
+                                            placeholder="Enter or drag folder here">
+                                        <button class="btn btn-outline-secondary" type="button" id="browseExportPath"
+                                            title="Browse for folder">
                                             <i class="bi bi-folder2-open"></i>
                                         </button>
                                     </div>
@@ -695,8 +743,10 @@
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Filename Prefix (Optional)</label>
-                                    <input type="text" class="form-control" id="exportFilenamePrefix" placeholder="e.g., Jeff">
-                                    <small class="text-muted">A dash will be added after the prefix (e.g., Jeff-0001.jpg)</small>
+                                    <input type="text" class="form-control" id="exportFilenamePrefix"
+                                        placeholder="e.g., Jeff">
+                                    <small class="text-muted">A dash will be added after the prefix (e.g.,
+                                        Jeff-0001.jpg)</small>
                                 </div>
                                 <div class="row">
                                     <div class="col-6">
@@ -754,7 +804,16 @@
                 <div class="modal-body">
                     <div class="row">
                         <div class="col-md-6">
-                            <img id="imageDetailPreview" class="img-fluid rounded" alt="Preview">
+                            <div class="position-relative">
+                                <img id="imageDetailPreview" class="img-fluid rounded" alt="Preview"
+                                    style="max-height: 80vh; object-fit: contain; cursor: pointer;"
+                                    onclick="Folders.toggleFullscreen()">
+                                <button class="btn btn-sm btn-dark position-absolute top-0 end-0 m-2 opacity-75"
+                                    id="imageDetailFullscreenBtn" onclick="Folders.toggleFullscreen()"
+                                    title="Fullscreen (F)">
+                                    <i class="bi bi-arrows-fullscreen"></i>
+                                </button>
+                            </div>
                         </div>
                         <div class="col-md-6">
                             <h6 class="text-muted">File Information</h6>
@@ -762,7 +821,7 @@
                                 <tbody id="imageDetailInfo">
                                 </tbody>
                             </table>
-                            
+
                             <h6 class="text-muted mt-3">Imported Caption</h6>
                             <div id="imageDetailCaptionArea">
                                 <!-- Populated dynamically - read only display -->
@@ -774,29 +833,41 @@
         </div>
     </div>
 
-    <!-- Modal: Dataset Caption Editor (for editing captions within a caption set) -->
-    <div class="modal fade" id="datasetCaptionModal" tabindex="-1">
-        <div class="modal-dialog modal-xl">
+    <!-- Caption Editor Modal -->
+    <div class="modal fade" id="datasetCaptionModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="max-width: 1340px;">
             <div class="modal-content bg-dark border-secondary">
                 <div class="modal-header border-secondary">
                     <h5 class="modal-title" id="datasetCaptionTitle">Edit Caption</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
-                    <div class="row">
-                        <div class="col-md-5">
-                            <img id="datasetCaptionPreview" class="img-fluid rounded mb-3" alt="Preview">
-                            <div class="small text-muted" id="datasetCaptionFileInfo"></div>
+                <div class="modal-body" style="height: 75vh; overflow: hidden;">
+                    <div class="row h-100">
+                        <div class="col-md-5 h-100">
+                            <div class="position-relative h-100 d-flex flex-column">
+                                <div class="flex-grow-1 d-flex align-items-center justify-content-center overflow-hidden"
+                                    style="min-height: 0;">
+                                    <img id="datasetCaptionPreview" class="rounded" alt="Preview"
+                                        style="max-width: 100%; max-height: 100%; object-fit: contain; cursor: pointer;"
+                                        onclick="Datasets.toggleFullscreen()">
+                                    <button class="btn btn-sm btn-dark position-absolute top-0 end-0 m-2 opacity-75"
+                                        id="datasetCaptionFullscreenBtn" onclick="Datasets.toggleFullscreen()"
+                                        title="Fullscreen (F)">
+                                        <i class="bi bi-arrows-fullscreen"></i>
+                                    </button>
+                                </div>
+                                <div class="small text-muted" id="datasetCaptionFileInfo"></div>
+                            </div>
                         </div>
-                        <div class="col-md-7">
+                        <div class="col-md-7 h-100 overflow-auto">
                             <!-- Imported Caption Reference (collapsed by default) -->
-                            <div class="mb-3">
+                            <div class="mb-2">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <small class="text-muted">
                                         <i class="bi bi-file-text me-1"></i>Imported Caption (Reference)
                                     </small>
-                                    <button class="btn btn-sm btn-link text-muted p-0" type="button" 
-                                            data-bs-toggle="collapse" data-bs-target="#importedCaptionCollapse">
+                                    <button class="btn btn-sm btn-link text-muted p-0" type="button"
+                                        data-bs-toggle="collapse" data-bs-target="#importedCaptionCollapse">
                                         <i class="bi bi-chevron-down"></i>
                                     </button>
                                 </div>
@@ -806,30 +877,96 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <!-- Caption Set Caption (editable) -->
-                            <div class="mb-3">
-                                <label class="form-label d-flex justify-content-between">
-                                    <span><i class="bi bi-pencil me-1"></i>Caption <small class="text-muted" id="datasetCaptionSetName"></small></span>
-                                    <button class="btn btn-sm btn-outline-secondary" id="datasetCaptionCopyImported" title="Copy from imported">
-                                        <i class="bi bi-clipboard me-1"></i>Copy Imported
+                            <div class="mb-2">
+                                <label class="form-label d-flex justify-content-between align-items-center mb-1">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span><i class="bi bi-pencil me-1"></i>Caption (English) <small
+                                                class="text-muted" id="datasetCaptionSetName"></small></span>
+                                        <select class="form-select form-select-sm" id="datasetCaptionTemplate"
+                                            style="width: auto; min-width: 150px; background-color: var(--bs-dark); color: white; border-color: var(--bs-secondary);">
+                                            <option value="default">Default</option>
+                                            <option value="detailed_p">🖼️ Detailed Description</option>
+                                            <option value="ultra">🖼️ Ultra Detailed Description</option>
+                                            <option value="cinematic">🎬 Cinematic Description</option>
+                                            <option value="manual">✍️ Manual (Custom Instruction)</option>
+                                        </select>
+                                        <select class="form-select form-select-sm" id="datasetCaptionModel"
+                                            style="width: auto; max-width: 250px; background-color: var(--bs-dark); color: white; border-color: var(--bs-secondary);">
+                                            <option value="">Loading models...</option>
+                                        </select>
+                                    </div>
+
+                                    <button class="btn btn-sm btn-outline-secondary py-0"
+                                        id="datasetCaptionCopyImported" title="Copy">
+                                        <i class="bi bi-clipboard me-1"></i>Copy
                                     </button>
                                 </label>
-                                <textarea class="form-control" id="datasetCaptionText" rows="6" placeholder="Enter caption for this image..."></textarea>
-                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                <textarea class="form-control" id="datasetCaptionText" rows="5"
+                                    placeholder="Enter caption for this image..."></textarea>
+                                <div class="d-flex justify-content-between align-items-center mt-1">
                                     <small class="text-muted">
-                                        <span id="datasetCaptionCharCount">0</span> characters
+                                        <span id="datasetCaptionCharCount">0</span> chars
                                         <span id="datasetCaptionMaxLength" class="ms-1"></span>
                                     </small>
-                                    <div>
-                                        <button class="btn btn-sm btn-outline-secondary me-1" id="datasetCaptionGenerateBtn">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <!-- Selectors moved to header -->
+
+                                        <button class="btn btn-sm btn-outline-secondary" id="datasetCaptionTranslateBtn"
+                                            title="Translate (Auto-Detect Direction)" style="height: 31px;">
+                                            <i class="bi bi-translate me-1"></i>Translate
+                                        </button>
+                                        <div class="input-group input-group-sm" style="width: auto; height: 31px;">
+                                            <span class="input-group-text py-0 bg-dark text-light border-secondary"
+                                                style="font-size: 0.75rem;">Seed</span>
+                                            <input type="number"
+                                                class="form-control form-control-sm bg-dark text-light border-secondary"
+                                                id="datasetCaptionSeed" style="width: 100px; font-size: 0.75rem;"
+                                                placeholder="Rnd">
+                                            <select
+                                                class="form-select form-select-sm bg-dark text-light border-secondary"
+                                                id="datasetCaptionSeedMode" style="width: 100px; font-size: 0.75rem;">
+
+                                                <option value="fixed">Fixed</option>
+                                                <option value="increment">Inc</option>
+                                                <option value="random">Rand</option>
+                                            </select>
+                                        </div>
+                                        <button class="btn btn-sm btn-outline-secondary" id="datasetCaptionGenerateBtn"
+                                            style="height: 31px;">
                                             <i class="bi bi-magic me-1"></i>Generate
                                         </button>
-                                        <button class="btn btn-sm btn-primary" id="datasetCaptionSaveBtn">
+                                        <button class="btn btn-sm btn-outline-secondary" id="datasetCaptionSaveBtn"
+                                            style="height: 31px;">
                                             <i class="bi bi-check-lg me-1"></i>Save
                                         </button>
+
+
                                     </div>
                                 </div>
+
+                                <!-- Custom Instruction for Manual template -->
+                                <div class="mb-2 mt-3" id="datasetCaptionManualContainer" style="display: none;">
+                                    <label class="form-label border-top pt-2 mb-1 w-100">
+                                        <i class="bi bi-pencil-square me-1"></i>Custom Instruction
+                                    </label>
+                                    <textarea class="form-control" id="datasetCaptionManualPrompt" rows="4"
+                                        placeholder="Enter your custom instruction for the vision model..."></textarea>
+                                    <small class="text-muted">This instruction will be sent to the model instead of
+                                        the
+                                        template.</small>
+                                </div>
+
+                                <!-- Russian Caption -->
+                                <div class="mb-2 mt-3" id="datasetCaptionRuContainer">
+                                    <label class="form-label border-top pt-2 mb-1 w-100">
+                                        <i class="bi bi-translate me-1"></i>Translation (Russian)
+                                    </label>
+                                    <textarea class="form-control" id="datasetCaptionRuText" rows="5"
+                                        placeholder="Russian translation..." readonly></textarea>
+                                </div>
+
                                 <!-- Quality Assessment Display -->
                                 <div id="datasetCaptionQualityContainer" class="mt-3 d-none">
                                     <div class="d-flex align-items-center gap-2 mb-2">
@@ -873,7 +1010,8 @@
                             <label class="form-check-label" for="overwriteExisting">
                                 Overwrite existing captions
                             </label>
-                            <div class="form-text">If unchecked, images with existing captions will be skipped.</div>
+                            <div class="form-text">If unchecked, images with existing captions will be skipped.
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -901,7 +1039,8 @@
                         <i class="bi bi-info-circle-fill me-3 fs-5"></i>
                         <div>
                             <p class="mb-1">Changes are saved to <code>config/settings.yaml</code>.</p>
-                            <small class="text-muted">Most settings take effect immediately. Server URL changes may require a restart.</small>
+                            <small class="text-muted">Most settings take effect immediately. Server URL changes may
+                                require a restart.</small>
                         </div>
                     </div>
 
@@ -914,35 +1053,20 @@
                             <div class="card-body">
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
-                                        <label class="form-label text-light">Backend</label>
-                                        <select class="form-select bg-dark text-light border-secondary" id="settings_vision_backend">
-                                            <option value="ollama">Ollama</option>
-                                            <option value="lmstudio">LM Studio</option>
-                                        </select>
-                                        <div class="form-text text-secondary">Vision model provider.</div>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
                                         <label class="form-label text-light">Default Model</label>
-                                        <input type="text" class="form-control bg-dark text-light border-secondary" id="settings_vision_model" placeholder="qwen3-vl:4b">
-                                        <div class="form-text text-secondary">Model name (must be installed in your backend).</div>
+                                        <input type="text" class="form-control bg-dark text-light border-secondary"
+                                            id="settings_vision_model" placeholder="qwen2.5-vl-7b">
+                                        <div class="form-text text-secondary">Model name (must be installed in your
+                                            backend).</div>
                                     </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label text-light">Ollama URL</label>
-                                        <div class="input-group">
-                                            <input type="url" class="form-control bg-dark text-light border-secondary" id="settings_ollama_url" placeholder="http://localhost:11434">
-                                            <button class="btn btn-outline-secondary" type="button" id="testOllamaBtn">
-                                                <i class="bi bi-plug"></i> Test
-                                            </button>
-                                        </div>
-                                        <div class="form-text text-secondary">Ollama API endpoint.</div>
-                                    </div>
+                                    <!-- LM Studio URL -->
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label text-light">LM Studio URL</label>
                                         <div class="input-group">
-                                            <input type="url" class="form-control bg-dark text-light border-secondary" id="settings_lmstudio_url" placeholder="http://localhost:1234">
-                                            <button class="btn btn-outline-secondary" type="button" id="testLmstudioBtn">
+                                            <input type="url" class="form-control bg-dark text-light border-secondary"
+                                                id="settings_lmstudio_url" placeholder="http://localhost:1234">
+                                            <button class="btn btn-outline-secondary" type="button"
+                                                id="testLmstudioBtn">
                                                 <i class="bi bi-plug"></i> Test
                                             </button>
                                         </div>
@@ -952,20 +1076,27 @@
                                 <div class="row">
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label text-light">Max Tokens (num_predict)</label>
-                                        <input type="number" class="form-control bg-dark text-light border-secondary" id="settings_vision_max_tokens" min="512" max="32768" step="256" placeholder="4096">
+                                        <input type="number" class="form-control bg-dark text-light border-secondary"
+                                            id="settings_vision_max_tokens" min="512" max="32768" step="256"
+                                            placeholder="4096">
                                         <div class="form-text text-secondary">
-                                            <span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Important:</span> 
-                                            Increase this if captions fail due to token limits. Models with "thinking" mode (like qwen3-vl) may need 8192+.
+                                            <span class="text-warning"><i
+                                                    class="bi bi-exclamation-triangle me-1"></i>Important:</span>
+                                            Increase this if captions fail due to token limits. Models with
+                                            "thinking"
+                                            mode (like qwen3-vl) may need 8192+.
                                         </div>
                                     </div>
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label text-light">Timeout (seconds)</label>
-                                        <input type="number" class="form-control bg-dark text-light border-secondary" id="settings_vision_timeout" min="30" max="600" placeholder="120">
+                                        <input type="number" class="form-control bg-dark text-light border-secondary"
+                                            id="settings_vision_timeout" min="30" max="600" placeholder="120">
                                         <div class="form-text text-secondary">Request timeout per image.</div>
                                     </div>
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label text-light">Max Retries</label>
-                                        <input type="number" class="form-control bg-dark text-light border-secondary" id="settings_vision_retries" min="0" max="5" placeholder="2">
+                                        <input type="number" class="form-control bg-dark text-light border-secondary"
+                                            id="settings_vision_retries" min="0" max="5" placeholder="2">
                                         <div class="form-text text-secondary">Retry failed requests.</div>
                                     </div>
                                 </div>
@@ -981,17 +1112,21 @@
                                 <div class="row">
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label text-light">Max Size (px)</label>
-                                        <input type="number" class="form-control bg-dark text-light border-secondary" id="settings_thumb_size" min="128" max="512" step="64" placeholder="256">
-                                        <div class="form-text text-secondary">Maximum dimension for thumbnails.</div>
+                                        <input type="number" class="form-control bg-dark text-light border-secondary"
+                                            id="settings_thumb_size" min="128" max="512" step="64" placeholder="256">
+                                        <div class="form-text text-secondary">Maximum dimension for thumbnails.
+                                        </div>
                                     </div>
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label text-light">Quality</label>
-                                        <input type="number" class="form-control bg-dark text-light border-secondary" id="settings_thumb_quality" min="50" max="100" placeholder="85">
+                                        <input type="number" class="form-control bg-dark text-light border-secondary"
+                                            id="settings_thumb_quality" min="50" max="100" placeholder="85">
                                         <div class="form-text text-secondary">JPEG/WebP quality (1-100).</div>
                                     </div>
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label text-light">Format</label>
-                                        <select class="form-select bg-dark text-light border-secondary" id="settings_thumb_format">
+                                        <select class="form-select bg-dark text-light border-secondary"
+                                            id="settings_thumb_format">
                                             <option value="webp">WebP (recommended)</option>
                                             <option value="jpeg">JPEG</option>
                                             <option value="png">PNG</option>
@@ -1011,7 +1146,8 @@
                                 <div class="row">
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label text-light">Default Format</label>
-                                        <select class="form-select bg-dark text-light border-secondary" id="settings_export_format">
+                                        <select class="form-select bg-dark text-light border-secondary"
+                                            id="settings_export_format">
                                             <option value="jpeg">JPEG</option>
                                             <option value="png">PNG</option>
                                             <option value="webp">WebP</option>
@@ -1020,13 +1156,17 @@
                                     </div>
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label text-light">Default Quality</label>
-                                        <input type="number" class="form-control bg-dark text-light border-secondary" id="settings_export_quality" min="50" max="100" placeholder="95">
+                                        <input type="number" class="form-control bg-dark text-light border-secondary"
+                                            id="settings_export_quality" min="50" max="100" placeholder="95">
                                         <div class="form-text text-secondary">Default JPEG/WebP quality.</div>
                                     </div>
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label text-light">Filename Padding</label>
-                                        <input type="number" class="form-control bg-dark text-light border-secondary" id="settings_export_padding" min="1" max="10" placeholder="6">
-                                        <div class="form-text text-secondary">Digits in numbered filenames (e.g., 6 = 000001.jpg).</div>
+                                        <input type="number" class="form-control bg-dark text-light border-secondary"
+                                            id="settings_export_padding" min="1" max="10" placeholder="6">
+                                        <div class="form-text text-secondary">Digits in numbered filenames (e.g., 6
+                                            =
+                                            000001.jpg).</div>
                                     </div>
                                 </div>
                             </div>
@@ -1043,7 +1183,9 @@
                                     <label class="form-check-label text-light" for="settings_debug">
                                         Enable Debug Mode
                                     </label>
-                                    <div class="form-text text-secondary">Enable verbose logging for troubleshooting.</div>
+                                    <div class="form-text text-secondary">Enable verbose logging for
+                                        troubleshooting.
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1071,7 +1213,8 @@
                     Are you sure?
                 </div>
                 <div class="modal-footer border-secondary">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="confirmModalCancel">Cancel</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                        id="confirmModalCancel">Cancel</button>
                     <button type="button" class="btn btn-danger" id="confirmModalConfirm">Confirm</button>
                 </div>
             </div>
@@ -1082,9 +1225,162 @@
     <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer">
     </div>
 
+    <!-- Fullscreen Image Overlay -->
+    <div id="fullscreenOverlay" class="d-none"
+        style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); z-index: 9999; cursor: pointer; display: flex; align-items: center; justify-content: center;"
+        onclick="Datasets.toggleFullscreen()">
+        <img id="fullscreenImage" style="max-width: 95vw; max-height: 95vh; object-fit: contain;">
+        <button class="btn btn-dark position-absolute top-0 end-0 m-3"
+            onclick="event.stopPropagation(); Datasets.toggleFullscreen();">
+            <i class="bi bi-x-lg"></i>
+        </button>
+        <div class="position-absolute bottom-0 start-50 translate-middle-x mb-3 text-white-50 small">
+            Press <kbd>F</kbd> or <kbd>Esc</kbd> to close • Use <kbd>←</kbd> <kbd>→</kbd> to navigate
+        </div>
+    </div>
+
+    <!-- Info & Hotkeys Modal -->
+    <div class="modal fade" id="infoModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark text-light border-secondary">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title"><i class="bi bi-info-circle me-2 text-info"></i>Information & Hotkeys</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <ul class="nav nav-tabs border-secondary mb-3" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active text-light" data-bs-toggle="tab"
+                                data-bs-target="#info-general" type="button">General</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link text-light" data-bs-toggle="tab" data-bs-target="#info-hotkeys"
+                                type="button">Hotkeys</button>
+                        </li>
+                    </ul>
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="info-general">
+                            <div class="text-center mb-4">
+                                <img src="img/logo.png" alt="Logo" height="64" class="mb-3 rounded">
+                                <h4>RuCaptioner</h4>
+                                <p class="text-muted">AI-Powered Dataset Management for LORA Training</p>
+                            </div>
+                            <p>Streamline your dataset preparation with local AI tools. Organize, caption, and export
+                                your
+                                image datasets efficiently.</p>
+                            <div class="d-grid gap-2">
+                                <a href="#"
+                                    onclick="if(window.electronAPI) { window.electronAPI.openExternal('https://t.me/d2_cult_flow'); } return false;"
+                                    class="btn btn-outline-info">
+                                    <i class="bi bi-telegram me-2"></i>Official Telegram Channel
+                                </a>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="info-hotkeys">
+                            <h6 class="border-bottom border-secondary pb-2 mb-3 text-info">General</h6>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Toggle Fullscreen (Preview)</span>
+                                <div><kbd>F</kbd></div>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Close Modal / Fullscreen</span>
+                                <div><kbd>Esc</kbd></div>
+                            </div>
+
+                            <h6 class="border-bottom border-secondary pb-2 mb-3 mt-4 text-info">Navigation</h6>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Next Image</span>
+                                <div><kbd>→</kbd></div>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Previous Image</span>
+                                <div><kbd>←</kbd></div>
+                            </div>
+
+                            <h6 class="border-bottom border-secondary pb-2 mb-3 mt-4 text-info">Selection (Folders)</h6>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Select Multiple (Range)</span>
+                                <div><kbd>Shift</kbd> + Click</div>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Toggle Selection</span>
+                                <div><kbd>Ctrl</kbd> + Click</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Welcome / Setup Modal -->
+    <div class="modal fade" id="welcomeModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content bg-dark text-light border-secondary">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title"><i class="bi bi-rocket-takeoff me-2 text-primary"></i>Getting Started</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="text-center mb-4">
+                        <img src="img/logo.png" alt="Logo" height="80" class="mb-3 rounded">
+                        <h3>Welcome to RuCaptioner</h3>
+                        <p class="text-muted">To use the AI features, you need to set up LM Studio.</p>
+                    </div>
+
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="card bg-secondary bg-opacity-10 border-secondary h-100">
+                                <div class="card-body">
+                                    <h6 class="text-info"><i class="bi bi-1-circle-fill me-2"></i>Step 1: Install LM
+                                        Studio</h6>
+                                    <p class="small text-muted mb-3">Download and install the official LM Studio
+                                        application for direct AI model access.</p>
+                                    <div class="text-center">
+                                        <a href="#"
+                                            onclick="if(window.electronAPI) { window.electronAPI.openExternal('https://lmstudio.ai/'); } return false;"
+                                            class="btn btn-primary d-grid gap-2">
+                                            <span><i class="bi bi-download me-2"></i>Download LM Studio</span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-secondary bg-opacity-10 border-secondary h-100">
+                                <div class="card-body">
+                                    <h6 class="text-info"><i class="bi bi-2-circle-fill me-2"></i>Step 2: Load a Vision
+                                        Model</h6>
+                                    <p class="small text-muted mb-3">Crucial: You must download a model that supports
+                                        <strong>Vision</strong> capabilities (look for 'vision' in the name).
+                                    </p>
+                                    <div class="alert alert-dark border-secondary p-2 mb-0 small">
+                                        <i class="bi bi-info-circle me-1"></i> Start the local server in LM Studio on
+                                        port <strong>1234</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary justify-content-between">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="dontShowWelcomeAgain">
+                        <label class="form-check-label text-muted small" for="dontShowWelcomeAgain">
+                            Don't show this again
+                        </label>
+                    </div>
+                    <button type="button" class="btn btn-success px-4" data-bs-dismiss="modal" id="welcomeGotItBtn">
+                        <i class="bi bi-check-lg me-2"></i>I'm Ready
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap 5.3 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    
+
     <!-- Application Scripts -->
     <script src="js/utils.js"></script>
     <script src="js/api.js"></script>
@@ -1093,5 +1389,25 @@
     <script src="js/jobs.js"></script>
     <script src="js/exports.js"></script>
     <script src="js/app.js"></script>
+    <script>
+        // Startup Logic
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check for Welcome Modal
+            const dontShowWelcome = localStorage.getItem('cf_dont_show_welcome');
+            if (!dontShowWelcome) {
+                const welcomeModal = new bootstrap.Modal(document.getElementById('welcomeModal'));
+                welcomeModal.show();
+            }
+
+            // Handle "Don't show again" checkbox
+            document.getElementById('welcomeGotItBtn').addEventListener('click', () => {
+                const checkbox = document.getElementById('dontShowWelcomeAgain');
+                if (checkbox.checked) {
+                    localStorage.setItem('cf_dont_show_welcome', 'true');
+                }
+            });
+        });
+    </script>
 </body>
+
 </html>

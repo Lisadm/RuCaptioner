@@ -12,10 +12,33 @@ logger = logging.getLogger(__name__)
 # Project root directory (where this package is located)
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 
+import sys
+import os
+
+def get_app_data_dir():
+    """Get the application data directory for storing user files."""
+    if getattr(sys, 'frozen', False):
+        # Running as compiled executable
+        # We want data to be stored next to the application executable
+        # Structure: AppFolder/
+        #   - RuCaptioner.exe
+        #   - resources/backend/backend.exe
+        #   - data/ (we want it here)
+        
+        exe_path = Path(sys.executable)
+        # Go up 3 levels from backend.exe to reach App root
+        app_root = exe_path.parent.parent.parent
+        
+        app_data = app_root / 'data'
+        app_data.mkdir(parents=True, exist_ok=True)
+        return app_data
+    return PROJECT_ROOT
+
+APP_DATA_DIR = get_app_data_dir()
 
 class DatabaseConfig(BaseModel):
     """Database configuration."""
-    path: str = "data/database.db"
+    path: str = str(APP_DATA_DIR / "data" / "database.db")
 
 
 class VisionPreprocessingConfig(BaseModel):
@@ -28,13 +51,14 @@ class VisionPreprocessingConfig(BaseModel):
 
 class VisionConfig(BaseModel):
     """Vision model configuration."""
-    backend: str = "ollama"
-    ollama_url: str = "http://localhost:11434"
+    backend: str = "lmstudio"
     lmstudio_url: str = "http://localhost:1234"
-    default_model: str = "qwen2.5-vl:7b"
+    default_model: str = "qwen2.5-vl-7b"
     timeout_seconds: int = 120
     max_retries: int = 2
-    max_tokens: int = 4096  # num_predict for Ollama - increase if model exhausts tokens during thinking
+    
+    # Provider-specific settings
+    max_tokens: int = 4096  # num_predict
     preprocessing: VisionPreprocessingConfig = Field(default_factory=VisionPreprocessingConfig)
 
 
@@ -43,7 +67,7 @@ class ThumbnailConfig(BaseModel):
     max_size: int = 256
     quality: int = 85
     format: str = "webp"
-    cache_path: str = "data/thumbnails"
+    cache_path: str = str(APP_DATA_DIR / "data" / "thumbnails")
 
 
 class ExportConfig(BaseModel):
@@ -51,7 +75,7 @@ class ExportConfig(BaseModel):
     default_format: str = "jpeg"
     default_quality: int = 95
     default_padding: int = 6
-    staging_path: str = "data/exports"
+    staging_path: str = str(APP_DATA_DIR / "data" / "exports")
 
 
 class ImageProcessingConfig(BaseModel):

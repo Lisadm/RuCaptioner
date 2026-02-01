@@ -169,13 +169,20 @@ class DatasetStatsResponse(BaseModel):
 # ============================================================
 
 class CaptionSetCreate(BaseModel):
-    """Request schema for creating a caption set."""
-    name: str = Field(..., min_length=1, max_length=255)
+    name: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = None
-    style: str = Field("natural", pattern="^(natural|detailed|tags|custom)$")
+    style: Optional[str] = Field("natural", pattern="^(natural|detailed|tags|custom)$")
+    model: str = "default"  # Kept for backward compat, though might be redundant with vision_model
+    template: Optional[str] = None
     max_length: Optional[int] = Field(None, ge=10, le=10000)
     custom_prompt: Optional[str] = None
-    trigger_phrase: Optional[str] = Field(None, max_length=500, description="Prefix for captions, e.g. 'Nova Chorus, a woman'")
+    trigger_phrase: Optional[str] = Field(None, max_length=500)
+    
+    # Caption generation config
+    vision_model: Optional[str] = None
+    vision_backend: Optional[str] = Field(None, pattern="^(lmstudio)$")
+    system_prompt: Optional[str] = None
+    user_prompt: Optional[str] = None
 
 
 class CaptionSetUpdate(BaseModel):
@@ -198,6 +205,7 @@ class CaptionSetResponse(BaseModel):
     max_length: Optional[int]
     custom_prompt: Optional[str]
     trigger_phrase: Optional[str]
+    template_id: Optional[str] = None
     caption_count: int
     created_date: datetime
     updated_date: datetime
@@ -218,11 +226,13 @@ class CaptionCreate(BaseModel):
     vision_model: Optional[str] = None
     quality_score: Optional[float] = Field(None, ge=0.0, le=1.0)
     quality_flags: Optional[List[str]] = None
+    caption_ru: Optional[str] = None
 
 
 class CaptionUpdate(BaseModel):
     """Request schema for updating a caption."""
     text: str = Field(..., min_length=1)
+    caption_ru: Optional[str] = None
 
 
 class CaptionResponse(BaseModel):
@@ -233,8 +243,9 @@ class CaptionResponse(BaseModel):
     text: str
     source: str
     vision_model: Optional[str]
-    quality_score: Optional[float]
+    quality_score: Optional[float] = None
     quality_flags: Optional[str]
+    caption_ru: Optional[str]
     created_date: datetime
     updated_date: datetime
     
@@ -268,7 +279,9 @@ class VisionGenerateRequest(BaseModel):
     style: str = Field("natural", pattern="^(natural|detailed|tags|custom)$")
     max_length: Optional[int] = Field(None, ge=10, le=10000)
     vision_model: Optional[str] = None
-    vision_backend: Optional[str] = Field(None, pattern="^(ollama|lmstudio)$")
+    vision_backend: Optional[str] = Field(None, pattern="^(lmstudio)$")
+    template_id: Optional[str] = None
+    seed: Optional[int] = None
     custom_prompt: Optional[str] = None
     trigger_phrase: Optional[str] = Field(None, description="Caption must start with this phrase, e.g. 'Nova Chorus, a woman'")
 
@@ -281,12 +294,33 @@ class VisionGenerateResponse(BaseModel):
     processing_time_ms: int
     vision_model: str
     backend: str
+    caption_ru: Optional[str] = None
+
+
+class TranslateRequest(BaseModel):
+    """Request schema for text translation."""
+    text: str = Field(..., min_length=1, max_length=10000, description="Text to translate")
+    vision_model: Optional[str] = None
+    vision_backend: Optional[str] = Field(None, pattern="^(lmstudio)$")
+    direction: Optional[str] = Field("ru_to_en", pattern="^(ru_to_en|en_to_ru)$", description="Translation direction")
+
+
+class TranslateResponse(BaseModel):
+    """Response schema for translation."""
+    translated_text: str
+    processing_time_ms: int
+    vision_model: str
+    backend: str
+    direction: str = "ru_to_en"
 
 
 class AutoCaptionJobCreate(BaseModel):
     """Request schema for starting auto-caption job."""
     vision_model: Optional[str] = None
-    vision_backend: Optional[str] = Field(None, pattern="^(ollama|lmstudio)$")
+    vision_backend: Optional[str] = Field(None, pattern="^(lmstudio)$")
+    template_id: Optional[str] = None
+    seed: Optional[int] = None
+    seed_mode: Optional[str] = "fixed"
     overwrite_existing: bool = False
 
 
@@ -296,6 +330,9 @@ class CaptionJobResponse(BaseModel):
     caption_set_id: Optional[str]
     vision_model: str
     vision_backend: str
+    template_id: Optional[str] = None
+    seed: Optional[int] = None
+    seed_mode: Optional[str] = None
     status: str
     total_files: int
     completed_files: int
@@ -401,5 +438,4 @@ class HealthResponse(BaseModel):
     status: str
     version: str
     database_connected: bool
-    ollama_available: bool
     lmstudio_available: bool

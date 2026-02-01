@@ -14,14 +14,15 @@ const Folders = {
     hasMoreFiles: true,
     currentFilter: 'all',
     allFilesSelected: false,  // Track if "select all" was clicked
-    
+    lastSelectedFileId: null, // Anchor for range selection (Shift+Click)
+
     /**
      * Check if running in Electron desktop mode
      */
     isDesktopMode() {
         return typeof window.electronAPI !== 'undefined' && window.electronAPI.isElectron;
     },
-    
+
     /**
      * Initialize the folders module
      */
@@ -29,14 +30,14 @@ const Folders = {
         this.bindEvents();
         this.initDragAndDrop();
     },
-    
+
     /**
      * Initialize drag-and-drop support
      */
     initDragAndDrop() {
         const dropZone = document.getElementById('folderDropZone');
         const folderList = document.getElementById('folderList');
-        
+
         // Prevent default drag behaviors on the whole document
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
             document.body.addEventListener(eventName, (e) => {
@@ -44,7 +45,7 @@ const Folders = {
                 e.stopPropagation();
             }, false);
         });
-        
+
         // Highlight drop zone when dragging over folder list area
         ['dragenter', 'dragover'].forEach(eventName => {
             folderList.addEventListener(eventName, () => {
@@ -52,33 +53,33 @@ const Folders = {
                 dropZone.style.display = 'flex';
             }, false);
         });
-        
+
         ['dragleave', 'drop'].forEach(eventName => {
             dropZone.addEventListener(eventName, () => {
                 dropZone.classList.remove('drag-over');
                 dropZone.style.display = 'none';
             }, false);
         });
-        
+
         // Handle drop - in Electron, File objects have a .path property!
         dropZone.addEventListener('drop', async (e) => {
             Utils.log('info', 'folders', 'Folder drop event triggered', { isDesktopMode: this.isDesktopMode() });
-            
+
             const files = e.dataTransfer.files;
             const items = e.dataTransfer.items;
-            
+
             // In Electron, we can get the full path directly from dropped files!
             if (this.isDesktopMode() && files.length > 0 && files[0].path) {
                 const droppedPath = files[0].path;
                 Utils.log('info', 'folders', `Electron: got dropped path: ${droppedPath}`);
-                
+
                 // Check if it's a directory using the webkitGetAsEntry API
                 let isDirectory = false;
                 if (items && items.length > 0) {
                     const entry = items[0].webkitGetAsEntry?.();
                     isDirectory = entry?.isDirectory || false;
                 }
-                
+
                 if (!isDirectory) {
                     // If they dropped a file, get its parent directory
                     const folderPath = droppedPath.replace(/[/\\][^/\\]+$/, '');
@@ -89,7 +90,7 @@ const Folders = {
                 }
                 return;
             }
-            
+
             // Fallback: try to get folder name from webkitGetAsEntry
             let folderName = null;
             if (items) {
@@ -101,7 +102,7 @@ const Folders = {
                     }
                 }
             }
-            
+
             // Browser fallback - guide user to paste path
             if (folderName) {
                 Utils.log('info', 'folders', `Dropped folder detected (no path): ${folderName}`);
@@ -111,7 +112,7 @@ const Folders = {
             }
         }, false);
     },
-    
+
     /**
      * Show add folder modal with path pre-filled (for Electron drag-drop)
      */
@@ -119,14 +120,14 @@ const Folders = {
         const modal = new bootstrap.Modal(document.getElementById('addFolderModal'));
         const pathInput = document.getElementById('folderPath');
         const nameInput = document.getElementById('folderName');
-        
+
         pathInput.value = folderPath;
         nameInput.value = folderPath.split(/[/\\]/).pop();
-        
+
         modal.show();
         Utils.showToast('Folder path captured!', 'success');
     },
-    
+
     /**
      * Show the add folder modal with optional pre-filled name
      */
@@ -134,13 +135,13 @@ const Folders = {
         const modal = new bootstrap.Modal(document.getElementById('addFolderModal'));
         const pathInput = document.getElementById('folderPath');
         const nameInput = document.getElementById('folderName');
-        
+
         pathInput.value = '';
         nameInput.value = folderName;
         pathInput.placeholder = 'C:\\path\\to\\images';
-        
+
         modal.show();
-        
+
         if (folderName) {
             // Focus path input and try to auto-paste from clipboard
             document.getElementById('addFolderModal').addEventListener('shown.bs.modal', async () => {
@@ -157,20 +158,20 @@ const Folders = {
             }, { once: true });
         }
     },
-    
+
     /**
      * Browse for folder using native dialog (Electron) or show modal (browser)
      */
     async browseForFolder() {
         Utils.log('info', 'folders', 'browseForFolder() called', { isDesktopMode: this.isDesktopMode() });
-        
+
         if (this.isDesktopMode()) {
             // Use Electron's native folder dialog
             try {
                 Utils.log('debug', 'folders', 'Calling electronAPI.selectFolder()');
                 const folderPath = await window.electronAPI.selectFolder('Select Image Folder');
                 Utils.log('info', 'folders', `Native folder picker result: ${folderPath}`);
-                
+
                 if (folderPath) {
                     // We got a real path! Fill in the modal and show it
                     const modal = new bootstrap.Modal(document.getElementById('addFolderModal'));
@@ -188,7 +189,7 @@ const Folders = {
             this.showAddFolderModal();
         }
     },
-    
+
     /**
      * Bind event listeners
      */
@@ -205,7 +206,7 @@ const Folders = {
                 modal.show();
             }
         });
-        
+
         // Browse path button inside modal
         document.getElementById('browsePathBtn')?.addEventListener('click', async () => {
             if (this.isDesktopMode()) {
@@ -223,13 +224,13 @@ const Folders = {
                 Utils.showToast('Native folder browsing is only available in desktop mode. Please paste the path manually.', 'info');
             }
         });
-        
+
         // Confirm add folder
         document.getElementById('confirmAddFolder').addEventListener('click', () => this.addFolder());
-        
+
         // Confirm edit folder
         document.getElementById('confirmEditFolder')?.addEventListener('click', () => this.saveEditFolder());
-        
+
         // Paste path button
         document.getElementById('pastePathBtn')?.addEventListener('click', async () => {
             try {
@@ -242,47 +243,47 @@ const Folders = {
                 Utils.showToast('Unable to access clipboard. Please paste manually (Ctrl+V)', 'warning');
             }
         });
-        
+
         // Select all button
         document.getElementById('selectAllBtn').addEventListener('click', () => this.toggleSelectAll());
-        
+
         // Add to dataset button
         document.getElementById('addToDatasetBtn').addEventListener('click', () => this.showAddToDatasetDialog());
-        
+
         // Confirm add to dataset button (in modal)
         document.getElementById('confirmAddToDataset')?.addEventListener('click', () => this.confirmAddToDataset());
-        
+
         // Dataset mode toggle (select existing vs create new)
         document.getElementById('modeSelectExisting')?.addEventListener('change', () => {
             document.getElementById('selectExistingSection').style.display = 'block';
             document.getElementById('createNewSection').style.display = 'none';
             document.getElementById('confirmAddButtonText').textContent = 'Add Files';
         });
-        
+
         document.getElementById('modeCreateNew')?.addEventListener('change', () => {
             document.getElementById('selectExistingSection').style.display = 'none';
             document.getElementById('createNewSection').style.display = 'block';
             document.getElementById('confirmAddButtonText').textContent = 'Create & Add';
         });
-        
+
         // File filter
         document.getElementById('fileFilterType').addEventListener('change', (e) => {
             if (this.currentFolderId) {
                 this.loadFolderFiles(this.currentFolderId, 1, e.target.value, true);
             }
         });
-        
+
         // Thumbnail size slider
         document.getElementById('thumbnailSize').addEventListener('input', (e) => {
             Utils.setThumbnailSize(e.target.value);
         });
-        
+
         // Image detail modal - save caption button
         document.getElementById('saveImageCaption')?.addEventListener('click', () => this.saveImageCaption());
-        
+
         // Image detail modal - generate caption button
         document.getElementById('generateImageCaption')?.addEventListener('click', () => this.generateSingleCaption());
-        
+
         // Caption character counter
         const captionEl = document.getElementById('imageDetailCaption');
         const charCountEl = document.getElementById('captionCharCount');
@@ -292,23 +293,120 @@ const Folders = {
                 charCountEl.textContent = `${len} character${len === 1 ? '' : 's'}`;
             });
         }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            // Only handle keyboard events when image detail modal is open
+            const modal = document.getElementById('imageDetailModal');
+            if (!modal || !modal.classList.contains('show')) return;
+
+            // Don't navigate if user is typing in a textarea or input
+            const activeElement = document.activeElement;
+            if (activeElement && (activeElement.tagName === 'TEXTAREA' || activeElement.tagName === 'INPUT')) {
+                return;
+            }
+
+            if (e.code === 'ArrowLeft') {
+                e.preventDefault();
+                this.navigatePrev();
+            } else if (e.code === 'ArrowRight') {
+                e.preventDefault();
+                this.navigateNext();
+            } else if (e.code === 'KeyF') {
+                e.preventDefault();
+                this.toggleFullscreen();
+            } else if (e.code === 'Escape') {
+                const fullscreenOverlay = document.getElementById('fullscreenOverlay');
+                if (fullscreenOverlay && !fullscreenOverlay.classList.contains('d-none')) {
+                    e.preventDefault();
+                    this.toggleFullscreen();
+                }
+            }
+        });
+
+        // Deselect on grid background click
+        document.getElementById('imageGrid').addEventListener('click', (e) => {
+            // Check if click is directly on the grid or an element that is NOT an image card
+            if (e.target.id === 'imageGrid' || e.target.id === 'loadMoreIndicator' || e.target.closest('#loadMoreIndicator')) {
+                // Deselect all
+                if (this.selectedFiles.size > 0) {
+                    this.selectedFiles.clear();
+                    this.allFilesSelected = false;
+                    this.lastSelectedFileId = null;
+
+                    document.querySelectorAll('#imageGrid .image-card').forEach(card => {
+                        card.classList.remove('selected');
+                        const checkbox = card.querySelector('.select-checkbox');
+                        if (checkbox) checkbox.checked = false;
+                    });
+
+                    this.updateSelectionUI();
+                }
+            }
+        });
     },
-    
+
+    /**
+     * Navigate to previous image
+     */
+    navigatePrev() {
+        if (!this.files || this.files.length === 0 || !this.currentDetailFileId) return;
+
+        const currentIndex = this.files.findIndex(f => f.id === this.currentDetailFileId);
+        if (currentIndex > 0) {
+            const prevFile = this.files[currentIndex - 1];
+            this.showImageDetails(prevFile.id);
+        }
+    },
+
+    /**
+     * Navigate to next image
+     */
+    navigateNext() {
+        if (!this.files || this.files.length === 0 || !this.currentDetailFileId) return;
+
+        const currentIndex = this.files.findIndex(f => f.id === this.currentDetailFileId);
+        if (currentIndex !== -1 && currentIndex < this.files.length - 1) {
+            const nextFile = this.files[currentIndex + 1];
+            this.showImageDetails(nextFile.id);
+        }
+    },
+
+    /**
+     * Toggle fullscreen image view
+     */
+    toggleFullscreen() {
+        const overlay = document.getElementById('fullscreenOverlay');
+        if (!overlay) return;
+
+        if (overlay.classList.contains('d-none')) {
+            overlay.classList.remove('d-none');
+            // Ensure image source is synced
+            const preview = document.getElementById('imageDetailPreview');
+            const fullscreen = document.getElementById('fullscreenImage');
+            if (preview && fullscreen) {
+                fullscreen.src = preview.src;
+            }
+        } else {
+            overlay.classList.add('d-none');
+        }
+    },
+
     /**
      * Load and display folders list
      */
     async loadFolders() {
         const list = document.getElementById('folderList');
         list.innerHTML = Utils.loadingSpinner('sm');
-        
+
         try {
             const folders = await API.listFolders();
-            
+
             if (folders.length === 0) {
                 list.innerHTML = Utils.emptyState('bi-folder2-open', 'No folders tracked yet', 'Click + to add a folder');
                 return;
             }
-            
+
             list.innerHTML = folders.map(folder => `
                 <a href="#" class="list-group-item list-group-item-action ${folder.id === this.currentFolderId ? 'active' : ''}" 
                    data-folder-id="${folder.id}">
@@ -334,7 +432,7 @@ const Folders = {
                     </div>
                 </a>
             `).join('');
-            
+
             // Bind folder click events
             list.querySelectorAll('[data-folder-id]').forEach(el => {
                 el.addEventListener('click', (e) => {
@@ -343,21 +441,21 @@ const Folders = {
                     e.preventDefault();
                     this.selectFolder(el.dataset.folderId);
                 });
-                
+
                 // Edit button
                 el.querySelector('.edit-btn').addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     this.showEditFolderModal(el.dataset.folderId);
                 });
-                
+
                 // Rescan button
                 el.querySelector('.rescan-btn').addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     this.rescanFolder(el.dataset.folderId);
                 });
-                
+
                 // Remove button
                 el.querySelector('.remove-btn').addEventListener('click', (e) => {
                     e.preventDefault();
@@ -365,13 +463,13 @@ const Folders = {
                     this.removeFolder(el.dataset.folderId);
                 });
             });
-            
+
         } catch (error) {
             list.innerHTML = Utils.emptyState('bi-exclamation-triangle', 'Error loading folders', error.message);
             Utils.showToast('Failed to load folders: ' + error.message, 'error');
         }
     },
-    
+
     /**
      * Add a new folder
      */
@@ -379,27 +477,27 @@ const Folders = {
         const path = document.getElementById('folderPath').value.trim();
         const name = document.getElementById('folderName').value.trim() || null;
         const recursive = document.getElementById('scanRecursively').checked;
-        
+
         if (!path) {
             Utils.showToast('Please enter a folder path', 'warning');
             return;
         }
-        
+
         const btn = document.getElementById('confirmAddFolder');
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Adding...';
-        
+
         try {
             const folder = await API.addFolder(path, name, recursive);
             Utils.showToast(`Added folder: ${folder.name || path}`, 'success');
-            
+
             // Close modal and refresh
             bootstrap.Modal.getInstance(document.getElementById('addFolderModal')).hide();
             document.getElementById('addFolderForm').reset();
-            
+
             await this.loadFolders();
             this.selectFolder(folder.id);
-            
+
         } catch (error) {
             Utils.showToast('Failed to add folder: ' + error.message, 'error');
         } finally {
@@ -407,7 +505,7 @@ const Folders = {
             btn.innerHTML = '<i class="bi bi-plus-lg me-1"></i>Add Folder';
         }
     },
-    
+
     /**
      * Select a folder and load its files
      */
@@ -415,28 +513,29 @@ const Folders = {
         this.currentFolderId = folderId;
         this.selectedFiles.clear();
         this.allFilesSelected = false;
+        this.lastSelectedFileId = null;
         this.currentPage = 1;
         this.hasMoreFiles = true;
         this.files = [];
         this.updateSelectionUI();
-        
+
         // Update active state in list
         document.querySelectorAll('#folderList [data-folder-id]').forEach(el => {
             el.classList.toggle('active', el.dataset.folderId === folderId);
         });
-        
+
         const filter = document.getElementById('fileFilterType').value;
         await this.loadFolderFiles(folderId, 1, filter, true);
     },
-    
+
     /**
      * Load files for a folder with infinite scroll support
      */
     async loadFolderFiles(folderId, page = 1, filter = 'all', reset = false) {
         if (this.isLoading) return;
-        
+
         const grid = document.getElementById('imageGrid');
-        
+
         // Show initial loading spinner on first load
         if (reset) {
             grid.innerHTML = Utils.loadingSpinner();
@@ -445,53 +544,53 @@ const Folders = {
             this.hasMoreFiles = true;
             this.currentFilter = filter;
         }
-        
+
         this.isLoading = true;
         this.currentPage = page;
-        
+
         try {
             const folder = await API.getFolder(folderId);
             const response = await API.getFolderFiles(folderId, page, this.pageSize, filter);
-            
+
             this.totalFiles = response.total;
-            
+
             // Update header
             document.getElementById('folderTitle').innerHTML = `<i class="bi bi-folder me-2"></i>${Utils.escapeHtml(folder.name || folder.path)}`;
             document.getElementById('fileCount').textContent = `${response.total} files`;
-            
+
             // Enable toolbar buttons
             document.getElementById('selectAllBtn').disabled = false;
-            
+
             if (response.files.length === 0 && reset) {
                 grid.innerHTML = Utils.emptyState('bi-images', 'No images found', filter !== 'all' ? 'Try changing the filter' : '');
                 this.hasMoreFiles = false;
                 return;
             }
-            
+
             // Append new files to the list
             this.files.push(...response.files);
             this.hasMoreFiles = this.files.length < response.total;
-            
+
             // Render new image cards (append if not reset)
             const newCardsHtml = response.files.map(file => this.renderImageCard(file)).join('');
-            
+
             if (reset) {
                 grid.innerHTML = newCardsHtml;
             } else {
                 grid.insertAdjacentHTML('beforeend', newCardsHtml);
             }
-            
+
             // Bind click events to new cards only
             this.bindImageCardEvents();
-            
+
             // Setup infinite scroll on first load
             if (reset) {
                 this.setupInfiniteScroll(grid);
             }
-            
+
             // Remove pagination, add loading indicator if more files available
             document.getElementById('imagePagination').style.display = 'none';
-            
+
             // Manage loading indicator
             let indicator = document.getElementById('loadMoreIndicator');
             if (this.hasMoreFiles) {
@@ -506,7 +605,7 @@ const Folders = {
             } else if (indicator) {
                 indicator.remove();
             }
-            
+
         } catch (error) {
             grid.innerHTML = Utils.emptyState('bi-exclamation-triangle', 'Error loading files', error.message);
             Utils.showToast('Failed to load files: ' + error.message, 'error');
@@ -514,7 +613,7 @@ const Folders = {
             this.isLoading = false;
         }
     },
-    
+
     /**
      * Setup infinite scroll detection
      */
@@ -523,31 +622,31 @@ const Folders = {
         if (this._scrollHandler) {
             grid.removeEventListener('scroll', this._scrollHandler);
         }
-        
+
         this._scrollHandler = () => {
             if (this.isLoading || !this.hasMoreFiles) return;
-            
+
             // Check if user scrolled near bottom (within 500px)
             const scrollTop = grid.scrollTop;
             const scrollHeight = grid.scrollHeight;
             const clientHeight = grid.clientHeight;
-            
+
             if (scrollTop + clientHeight >= scrollHeight - 500) {
                 // Load next page
                 this.loadFolderFiles(this.currentFolderId, this.currentPage + 1, this.currentFilter, false);
             }
         };
-        
+
         grid.addEventListener('scroll', this._scrollHandler);
     },
-    
+
     /**
      * Render an image card
      */
     renderImageCard(file) {
         const isSelected = this.selectedFiles.has(file.id);
         const qualityClass = Utils.getQualityClass(file.quality_score);
-        
+
         return `
             <div class="image-card draggable ${isSelected ? 'selected' : ''}" data-file-id="${file.id}" draggable="true">
                 <input type="checkbox" class="form-check-input select-checkbox" ${isSelected ? 'checked' : ''}>
@@ -560,7 +659,7 @@ const Folders = {
             </div>
         `;
     },
-    
+
     /**
      * Bind events to image cards
      */
@@ -568,23 +667,36 @@ const Folders = {
         document.querySelectorAll('#imageGrid .image-card').forEach(card => {
             const fileId = card.dataset.fileId;
             const checkbox = card.querySelector('.select-checkbox');
-            
-            // Card click - show details
+
+            // Card click - handle selection and details
             card.addEventListener('click', (e) => {
                 if (e.target === checkbox) return; // Don't trigger on checkbox click
-                this.showImageDetails(fileId);
+
+                // Check for modifier keys
+                if (e.ctrlKey || e.metaKey) {
+                    // Ctrl/Cmd + Click: Toggle selection
+                    this.toggleFileSelection(fileId, card, checkbox);
+                } else if (e.shiftKey) {
+                    // Shift + Click: Range selection
+                    e.preventDefault(); // Prevent text selection
+                    this.selectRange(fileId);
+                } else {
+                    // Normal click: Show details and set as anchor
+                    this.lastSelectedFileId = fileId;
+                    this.showImageDetails(fileId);
+                }
             });
-            
+
             // Checkbox click - toggle selection
             checkbox.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.toggleFileSelection(fileId, card, checkbox);
             });
-            
+
             // Drag start - set up data for dropping into datasets
             card.addEventListener('dragstart', (e) => {
                 card.classList.add('dragging');
-                
+
                 // If the dragged item is selected, drag all selected items
                 // If not selected, just drag this one item
                 let dragIds;
@@ -593,12 +705,12 @@ const Folders = {
                 } else {
                     dragIds = [fileId];
                 }
-                
+
                 // Set the drag data
                 e.dataTransfer.setData('application/x-captionforge-images', JSON.stringify(dragIds));
                 e.dataTransfer.setData('text/plain', `${dragIds.length} image(s)`);
                 e.dataTransfer.effectAllowed = 'copy';
-                
+
                 // Create a custom drag image showing count
                 if (dragIds.length > 1) {
                     const dragImage = document.createElement('div');
@@ -610,17 +722,20 @@ const Folders = {
                     setTimeout(() => dragImage.remove(), 0);
                 }
             });
-            
+
             card.addEventListener('dragend', () => {
                 card.classList.remove('dragging');
             });
         });
     },
-    
+
     /**
      * Toggle file selection
      */
     toggleFileSelection(fileId, card, checkbox) {
+        // Set this file as the anchor for subsequent range selections
+        this.lastSelectedFileId = fileId;
+
         if (this.selectedFiles.has(fileId)) {
             this.selectedFiles.delete(fileId);
             card.classList.remove('selected');
@@ -632,18 +747,57 @@ const Folders = {
         }
         this.updateSelectionUI();
     },
-    
+
+    /**
+     * Select a range of files (Shift+Click)
+     */
+    selectRange(targetFileId) {
+        if (!this.lastSelectedFileId || !this.files || this.files.length === 0) {
+            // No anchor, just select the target
+            const card = document.querySelector(`.image-card[data-file-id="${targetFileId}"]`);
+            const checkbox = card?.querySelector('.select-checkbox');
+            if (card && checkbox) {
+                this.toggleFileSelection(targetFileId, card, checkbox);
+            }
+            return;
+        }
+
+        const startIdx = this.files.findIndex(f => f.id === this.lastSelectedFileId);
+        const endIdx = this.files.findIndex(f => f.id === targetFileId);
+
+        if (startIdx === -1 || endIdx === -1) return;
+
+        const start = Math.min(startIdx, endIdx);
+        const end = Math.max(startIdx, endIdx);
+
+        // Add all files in range to selection
+        for (let i = start; i <= end; i++) {
+            const file = this.files[i];
+            this.selectedFiles.add(file.id);
+        }
+
+        // Update UI
+        this.updateSelectionUI();
+        document.querySelectorAll('#imageGrid .image-card').forEach(card => {
+            if (this.selectedFiles.has(card.dataset.fileId)) {
+                card.classList.add('selected');
+                const cb = card.querySelector('.select-checkbox');
+                if (cb) cb.checked = true;
+            }
+        });
+    },
+
     /**
      * Toggle select all
      */
     async toggleSelectAll() {
         const isAllSelected = this.allFilesSelected || (this.selectedFiles.size === this.totalFiles);
-        
+
         if (isAllSelected) {
             // Deselect all
             this.selectedFiles.clear();
             this.allFilesSelected = false;
-            
+
             document.querySelectorAll('#imageGrid .image-card').forEach(card => {
                 card.classList.remove('selected');
                 const checkbox = card.querySelector('.select-checkbox');
@@ -656,7 +810,7 @@ const Folders = {
                     // Fetch all file IDs from the backend
                     const filter = this.currentFilter || 'all';
                     const response = await API.getFolderFiles(this.currentFolderId, 1, this.totalFiles, filter);
-                    
+
                     // Add all IDs to selection
                     this.selectedFiles.clear();
                     response.files.forEach(file => this.selectedFiles.add(file.id));
@@ -669,7 +823,7 @@ const Folders = {
                 // All files are loaded, just select them
                 this.files.forEach(file => this.selectedFiles.add(file.id));
             }
-            
+
             // Update UI for currently visible cards
             document.querySelectorAll('#imageGrid .image-card').forEach(card => {
                 card.classList.add('selected');
@@ -677,10 +831,10 @@ const Folders = {
                 if (checkbox) checkbox.checked = true;
             });
         }
-        
+
         this.updateSelectionUI();
     },
-    
+
     /**
      * Update selection UI elements
      */
@@ -688,28 +842,28 @@ const Folders = {
         const count = this.selectedFiles.size;
         const btn = document.getElementById('addToDatasetBtn');
         const selectBtn = document.getElementById('selectAllBtn');
-        
+
         btn.disabled = count === 0;
-        btn.innerHTML = count > 0 
-            ? `<i class="bi bi-plus"></i> Add ${count} to Dataset` 
+        btn.innerHTML = count > 0
+            ? `<i class="bi bi-plus"></i> Add ${count} to Dataset`
             : '<i class="bi bi-plus"></i> Add to Dataset';
-        
+
         // Update select all button text
         const isAllSelected = this.allFilesSelected || this.selectedFiles.size === this.totalFiles;
         selectBtn.innerHTML = isAllSelected
             ? '<i class="bi bi-x-lg"></i> Deselect All'
             : `<i class="bi bi-check2-all"></i> Select All${this.totalFiles > 0 ? ' (' + this.totalFiles + ')' : ''}`;
     },
-    
+
     /**
      * Show add to dataset dialog
      */
     async showAddToDatasetDialog() {
         if (this.selectedFiles.size === 0) return;
-        
+
         try {
             const datasets = await API.listDatasets();
-            
+
             // Reset modal to "Select Existing" mode
             document.getElementById('modeSelectExisting').checked = true;
             document.getElementById('selectExistingSection').style.display = 'block';
@@ -717,7 +871,7 @@ const Folders = {
             document.getElementById('confirmAddButtonText').textContent = 'Add Files';
             document.getElementById('newDatasetName').value = '';
             document.getElementById('newDatasetDescription').value = '';
-            
+
             // Populate the dataset selector
             const select = document.getElementById('selectDatasetList');
             if (datasets.length === 0) {
@@ -732,45 +886,45 @@ const Folders = {
                     <option value="${d.id}">${Utils.escapeHtml(d.name)} (${d.file_count} files)</option>
                 `).join('');
             }
-            
+
             // Update count display
             document.getElementById('selectedFilesCount').textContent = this.selectedFiles.size;
-            
+
             // Show the modal
             const modal = new bootstrap.Modal(document.getElementById('selectDatasetModal'));
             modal.show();
-            
+
         } catch (error) {
             Utils.showToast('Failed to load datasets: ' + error.message, 'error');
         }
     },
-    
+
     /**
      * Confirm adding selected files to dataset (called from modal)
      */
     async confirmAddToDataset() {
         const isCreateMode = document.getElementById('modeCreateNew').checked;
-        
+
         try {
             let datasetId;
             let datasetName;
-            
+
             if (isCreateMode) {
                 // Create new dataset mode
                 const name = document.getElementById('newDatasetName').value.trim();
                 const description = document.getElementById('newDatasetDescription').value.trim() || null;
-                
+
                 if (!name) {
                     Utils.showToast('Please enter a dataset name', 'warning');
                     return;
                 }
-                
+
                 // Create the dataset first
                 const dataset = await API.createDataset(name, description);
                 datasetId = dataset.id;
                 datasetName = dataset.name;
                 Utils.log('info', 'folders', `Created new dataset: id=${datasetId}, name='${datasetName}'`);
-                
+
             } else {
                 // Select existing dataset mode
                 datasetId = document.getElementById('selectDatasetList').value;
@@ -780,50 +934,63 @@ const Folders = {
                 }
                 datasetName = document.getElementById('selectDatasetList').selectedOptions[0].text;
             }
-            
+
             // Add files to the dataset
             const result = await API.addFilesToDataset(datasetId, Array.from(this.selectedFiles));
-            
+
             if (isCreateMode) {
                 Utils.showToast(`Created dataset and added ${result.added} files`, 'success');
             } else {
                 Utils.showToast(`Added ${result.added} files to dataset`, 'success');
             }
-            
+
             // Close modal
             bootstrap.Modal.getInstance(document.getElementById('selectDatasetModal')).hide();
-            
+
             // Mark that the dataset needs refresh (will be picked up when switching to datasets view)
             Datasets.needsRefresh = true;
             Datasets.lastModifiedDatasetId = datasetId;
-            
+
             // Clear selection
             this.selectedFiles.clear();
             this.updateSelectionUI();
-            
+
             // Refresh the grid to update selection state
             document.querySelectorAll('#imageGrid .image-card.selected').forEach(card => {
                 card.classList.remove('selected');
                 card.querySelector('.select-checkbox').checked = false;
             });
-            
+
         } catch (error) {
             Utils.showToast('Failed to add files: ' + error.message, 'error');
         }
     },
-    
+
     /**
      * Show image details modal
      */
     async showImageDetails(fileId) {
-        const modal = new bootstrap.Modal(document.getElementById('imageDetailModal'));
-        
+        // Save current file ID for navigation
+        this.currentDetailFileId = fileId;
+
+        let modal = bootstrap.Modal.getInstance(document.getElementById('imageDetailModal'));
+        if (!modal) {
+            modal = new bootstrap.Modal(document.getElementById('imageDetailModal'));
+        }
+
         try {
             const file = await API.getFileDetails(fileId);
-            
+
             document.getElementById('imageDetailTitle').textContent = file.filename;
-            document.getElementById('imageDetailPreview').src = API.getImageUrl(fileId);
-            
+            const imageUrl = API.getImageUrl(fileId);
+            document.getElementById('imageDetailPreview').src = imageUrl;
+
+            // Sync fullscreen if active
+            const fullscreenOverlay = document.getElementById('fullscreenOverlay');
+            if (fullscreenOverlay && !fullscreenOverlay.classList.contains('d-none')) {
+                document.getElementById('fullscreenImage').src = imageUrl;
+            }
+
             // File info table
             document.getElementById('imageDetailInfo').innerHTML = `
                 <tr><td>Filename</td><td>${Utils.escapeHtml(file.filename)}</td></tr>
@@ -833,7 +1000,7 @@ const Folders = {
                 <tr><td>Format</td><td>${file.format}</td></tr>
                 <tr><td>Added</td><td>${Utils.formatDate(file.discovered_date)}</td></tr>
             `;
-            
+
             // Imported caption (read-only) - this is from the paired .txt file
             const captionArea = document.getElementById('imageDetailCaptionArea');
             if (file.imported_caption) {
@@ -851,14 +1018,17 @@ const Folders = {
                     </div>
                 `;
             }
-            
-            modal.show();
-            
+
+            // Show modal if not already shown
+            if (!document.getElementById('imageDetailModal').classList.contains('show')) {
+                modal.show();
+            }
+
         } catch (error) {
             Utils.showToast('Failed to load file details: ' + error.message, 'error');
         }
     },
-    
+
     /**
      * Save caption for current image in detail modal
      */
@@ -866,21 +1036,21 @@ const Folders = {
         const captionEl = document.getElementById('imageDetailCaption');
         const fileId = captionEl.dataset.fileId;
         const text = captionEl.value.trim();
-        
+
         if (!fileId) {
             Utils.showToast('No file selected', 'warning');
             return;
         }
-        
+
         try {
             // Update the imported_caption field on the file
             await API.request(`/files/${fileId}/caption`, {
                 method: 'PUT',
                 body: { text }
             });
-            
+
             Utils.showToast('Caption saved', 'success');
-            
+
             // Update the has_caption indicator if in the grid
             const card = document.querySelector(`[data-file-id="${fileId}"]`);
             if (card && text) {
@@ -892,34 +1062,34 @@ const Folders = {
                     card.appendChild(badge);
                 }
             }
-            
+
         } catch (error) {
             Utils.showToast('Failed to save caption: ' + error.message, 'error');
         }
     },
-    
+
     /**
      * Generate caption for current image using vision model
      */
     async generateSingleCaption() {
         const captionEl = document.getElementById('imageDetailCaption');
         const fileId = captionEl.dataset.fileId;
-        
+
         if (!fileId) {
             Utils.showToast('No file selected', 'warning');
             return;
         }
-        
+
         const btn = document.getElementById('generateImageCaption');
         const originalHtml = btn.innerHTML;
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Generating...';
-        
+
         try {
             const result = await API.generateCaption(fileId);
             captionEl.value = result.caption;
             Utils.showToast('Caption generated', 'success');
-            
+
         } catch (error) {
             Utils.showToast('Failed to generate caption: ' + error.message, 'error');
         } finally {
@@ -927,26 +1097,26 @@ const Folders = {
             btn.innerHTML = originalHtml;
         }
     },
-    
+
     /**
      * Show edit folder modal
      */
     async showEditFolderModal(folderId) {
         try {
             const folder = await API.getFolder(folderId);
-            
+
             document.getElementById('editFolderId').value = folder.id;
             document.getElementById('editFolderPath').value = folder.path;
             document.getElementById('editFolderName').value = folder.name || '';
             document.getElementById('editFolderEnabled').checked = folder.enabled !== false;
-            
+
             const modal = new bootstrap.Modal(document.getElementById('editFolderModal'));
             modal.show();
         } catch (error) {
             Utils.showToast('Failed to load folder: ' + error.message, 'error');
         }
     },
-    
+
     /**
      * Save edited folder
      */
@@ -954,18 +1124,18 @@ const Folders = {
         const folderId = document.getElementById('editFolderId').value;
         const name = document.getElementById('editFolderName').value.trim() || null;
         const enabled = document.getElementById('editFolderEnabled').checked;
-        
+
         const btn = document.getElementById('confirmEditFolder');
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving...';
-        
+
         try {
             await API.updateFolder(folderId, { name, enabled });
             Utils.showToast('Folder updated successfully', 'success');
-            
+
             bootstrap.Modal.getInstance(document.getElementById('editFolderModal')).hide();
             await this.loadFolders();
-            
+
         } catch (error) {
             Utils.showToast('Failed to update folder: ' + error.message, 'error');
         } finally {
@@ -973,7 +1143,7 @@ const Folders = {
             btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Save Changes';
         }
     },
-    
+
     /**
      * Rescan a folder
      */
@@ -982,23 +1152,23 @@ const Folders = {
         const originalHTML = btn.innerHTML;
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-        
+
         try {
             const result = await API.scanFolder(folderId);
             Utils.showToast(`Scan complete: ${result.files_added} added, ${result.files_updated} updated, ${result.files_removed} removed`, 'success');
-            
+
             // Immediately refresh the folder list and files if this folder is selected
             await this.loadFolders();
-            
+
             if (this.currentFolderId === folderId) {
                 // Update the file count in the header immediately
                 const folder = await API.getFolder(folderId);
                 document.getElementById('fileCount').textContent = `${folder.file_count} files`;
-                
+
                 // Reload the files
                 await this.loadFolderFiles(folderId, 1, document.getElementById('fileFilterType').value, true);
             }
-            
+
         } catch (error) {
             Utils.showToast('Failed to scan folder: ' + error.message, 'error');
         } finally {
@@ -1006,7 +1176,7 @@ const Folders = {
             btn.innerHTML = originalHTML;
         }
     },
-    
+
     /**
      * Remove a folder
      */
@@ -1014,47 +1184,47 @@ const Folders = {
         if (!await Utils.confirm('Remove this folder from tracking? (Files will not be deleted)')) {
             return;
         }
-        
+
         try {
             await API.removeFolder(folderId);
             Utils.showToast('Folder removed', 'success');
-            
+
             if (this.currentFolderId === folderId) {
                 this.currentFolderId = null;
                 document.getElementById('imageGrid').innerHTML = Utils.emptyState('bi-images', 'Select a folder to view images');
                 document.getElementById('folderTitle').innerHTML = '<i class="bi bi-image me-2"></i>Select a folder';
                 document.getElementById('fileCount').textContent = '';
             }
-            
+
             await this.loadFolders();
-            
+
         } catch (error) {
             Utils.showToast('Failed to remove folder: ' + error.message, 'error');
         }
     },
-    
+
     /**
      * Render pagination controls
      */
     renderPagination(total, currentPage) {
         const totalPages = Math.ceil(total / this.pageSize);
         const pagination = document.getElementById('imagePagination');
-        
+
         if (totalPages <= 1) {
             pagination.style.display = 'none';
             return;
         }
-        
+
         pagination.style.display = 'block';
         const ul = pagination.querySelector('ul');
-        
+
         let html = '';
-        
+
         // Previous button
         html += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
             <a class="page-link" href="#" data-page="${currentPage - 1}">Previous</a>
         </li>`;
-        
+
         // Page numbers
         for (let i = 1; i <= totalPages; i++) {
             if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
@@ -1065,14 +1235,14 @@ const Folders = {
                 html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
             }
         }
-        
+
         // Next button
         html += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
             <a class="page-link" href="#" data-page="${currentPage + 1}">Next</a>
         </li>`;
-        
+
         ul.innerHTML = html;
-        
+
         // Bind events
         ul.querySelectorAll('[data-page]').forEach(el => {
             el.addEventListener('click', (e) => {

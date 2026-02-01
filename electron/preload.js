@@ -6,24 +6,27 @@
  * using contextBridge for security.
  */
 
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, shell } = require('electron');
 
 // Expose protected methods to the renderer process
 contextBridge.exposeInMainWorld('electronAPI', {
+    // Open external links
+    openExternal: (url) => ipcRenderer.invoke('open-external', url),
     // Platform info
     platform: process.platform,
     isElectron: true,
-    
+    backendUrl: 'http://127.0.0.1:8765',
+
     // Native dialogs
     selectFolder: (title) => ipcRenderer.invoke('select-folder', title),
     selectFile: (title, filters) => ipcRenderer.invoke('select-file', title, filters),
-    selectSaveLocation: (title, defaultPath, filters) => 
+    selectSaveLocation: (title, defaultPath, filters) =>
         ipcRenderer.invoke('select-save-location', title, defaultPath, filters),
-    
+
     // Logging
-    log: (level, module, message, data) => 
+    log: (level, module, message, data) =>
         ipcRenderer.send('log', level, module, message, data),
-    
+
     // Get path from dropped files (Electron adds .path to File objects)
     // This is called from the renderer after a drop event
     getDroppedPaths: (files) => {

@@ -143,6 +143,7 @@ def _run_alembic_migrations():
                 if current_version == LATEST_VERSION:
                     logger.debug("Database schema is up to date, skipping migration check")
                     return
+                # pass
         
         # Lazy import to avoid slowing down module load
         from alembic.config import Config as AlembicConfig
@@ -173,6 +174,42 @@ def _run_alembic_migrations():
     except Exception as e:
         logger.error(f"Failed to run database migrations: {e}")
         logger.warning("Continuing with existing schema...")
+    
+    # [ANTI-AGENT FIX] Ensure required columns exist regardless of migrations
+    try:
+        db_path = get_database_path()
+        with engine.connect() as conn:
+            # Check captions table
+            result = conn.execute(text("PRAGMA table_info(captions)")).fetchall()
+            columns = [row[1] for row in result]
+            if "caption_ru" not in columns:
+                logger.warning("Column 'caption_ru' missing in 'captions'. Applying emergency fix...")
+                conn.execute(text("ALTER TABLE captions ADD COLUMN caption_ru TEXT"))
+            
+            # Check caption_sets table
+            result = conn.execute(text("PRAGMA table_info(caption_sets)")).fetchall()
+            columns = [row[1] for row in result]
+            if "template_id" not in columns:
+                logger.warning("Column 'template_id' missing in 'caption_sets'. Applying emergency fix...")
+                conn.execute(text("ALTER TABLE caption_sets ADD COLUMN template_id VARCHAR(50)"))
+                
+            # Check caption_jobs table
+            result = conn.execute(text("PRAGMA table_info(caption_jobs)")).fetchall()
+            columns = [row[1] for row in result]
+            if "template_id" not in columns:
+                logger.warning("Column 'template_id' missing in 'caption_jobs'. Applying emergency fix...")
+                conn.execute(text("ALTER TABLE caption_jobs ADD COLUMN template_id VARCHAR(50)"))
+            if "seed" not in columns:
+                logger.warning("Column 'seed' missing in 'caption_jobs'. Applying emergency fix...")
+                conn.execute(text("ALTER TABLE caption_jobs ADD COLUMN seed BIGINT"))
+            if "seed_mode" not in columns:
+                logger.warning("Column 'seed_mode' missing in 'caption_jobs'. Applying emergency fix...")
+                conn.execute(text("ALTER TABLE caption_jobs ADD COLUMN seed_mode VARCHAR(20)"))
+                
+            conn.commit()
+            logger.info("Emergency schema checks complete.")
+    except Exception as e:
+        logger.error(f"Failed to apply emergency schema fix: {e}")
 
 
 def _run_migrations(engine):

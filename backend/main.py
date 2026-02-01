@@ -39,6 +39,39 @@ def check_logging_initialized():
         logger.info("Logging initialized by main.py (server-only mode)")
 
 
+async def scan_all_folders_on_startup():
+    """Scan all enabled folders in background on startup."""
+    try:
+        from .database import get_db
+        from .services.folder_service import FolderService
+        
+        # Small delay to let the app fully start
+        import asyncio
+        await asyncio.sleep(1)
+        
+        db = next(get_db())
+        try:
+            service = FolderService(db)
+            folders = service.list_folders()
+            enabled_folders = [f for f in folders if f.enabled]
+            
+            if enabled_folders:
+                logger.info(f"Auto-scanning {len(enabled_folders)} folders on startup...")
+                for folder in enabled_folders:
+                    try:
+                        result = await service.scan_folder(folder.id)
+                        logger.info(f"Scanned {folder.name}: {result.files_found} files, {result.files_added} added, {result.files_updated} updated")
+                    except Exception as e:
+                        logger.warning(f"Failed to scan folder {folder.name}: {e}")
+                logger.info("Startup folder scan complete")
+            else:
+                logger.debug("No enabled folders to scan on startup")
+        finally:
+            db.close()
+    except Exception as e:
+        logger.error(f"Error during startup folder scan: {e}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler."""
@@ -56,6 +89,19 @@ async def lifespan(app: FastAPI):
     # Initialize database
     init_db()
     logger.info("Database initialized")
+    # Explicit signal for Electron to know we are ready (bypassing logging formatting issues)
+    print("CAPTION_FOUNDRY_BACKEND_READY", flush=True)
+    
+    # Start background folder scan
+    import asyncio
+    asyncio.create_task(scan_all_folders_on_startup())
+    
+    # Start stdin watchdog (to ensure termination if Electron crashes)
+    try:
+        from .utils.shutdown_handler import start_stdin_watchdog
+        start_stdin_watchdog()
+    except Exception as e:
+        logger.warning(f"Failed to start stdin watchdog: {e}")
     
     yield
     

@@ -8,10 +8,13 @@ import logging
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional, Dict, Any, AsyncGenerator
+from typing import List, Optional, Dict, Any, AsyncGenerator, TYPE_CHECKING
 
-import aiohttp
-from PIL import Image
+if TYPE_CHECKING:
+    import aiohttp
+
+# import aiohttp
+# from PIL import Image
 from sqlalchemy.orm import Session
 
 from ..config import get_settings, PROJECT_ROOT
@@ -26,7 +29,6 @@ CURATED_MODELS = [
     {
         "model_id": "qwen2.5-vl-7b",
         "name": "Qwen2.5-VL 7B",
-        "ollama_name": "qwen2.5-vl:7b",
         "lmstudio_name": "qwen/qwen2.5-vl-7b-instruct",
         "vram_gb": 8.0,
         "description": "Excellent quality, good speed. Recommended for most users."
@@ -34,7 +36,6 @@ CURATED_MODELS = [
     {
         "model_id": "qwen2.5-vl-3b",
         "name": "Qwen2.5-VL 3B",
-        "ollama_name": "qwen2.5-vl:3b",
         "lmstudio_name": "qwen/qwen2.5-vl-3b-instruct",
         "vram_gb": 4.0,
         "description": "Fast and lightweight. Good for quick iterations."
@@ -42,7 +43,6 @@ CURATED_MODELS = [
     {
         "model_id": "llava-1.6-34b",
         "name": "LLaVA 1.6 34B",
-        "ollama_name": "llava:34b",
         "lmstudio_name": "liuhaotian/llava-v1.6-34b",
         "vram_gb": 24.0,
         "description": "Highest quality, requires significant VRAM."
@@ -50,7 +50,6 @@ CURATED_MODELS = [
     {
         "model_id": "llava-1.6-13b",
         "name": "LLaVA 1.6 13B",
-        "ollama_name": "llava:13b",
         "lmstudio_name": "liuhaotian/llava-v1.6-13b",
         "vram_gb": 12.0,
         "description": "Good balance of quality and speed."
@@ -58,12 +57,18 @@ CURATED_MODELS = [
     {
         "model_id": "llava-1.6-7b",
         "name": "LLaVA 1.6 7B",
-        "ollama_name": "llava:7b",
         "lmstudio_name": "liuhaotian/llava-v1.6-7b",
         "vram_gb": 6.0,
         "description": "Efficient option for lower VRAM systems."
     },
 ]
+
+# Curated prompt templates
+PROMPT_TEMPLATES = {
+    "detailed_p": "Напиши ОДИН подробный абзац (6–10 предложений). Описывай только то, что видно: объект(ы) и действия; детали людей, если они есть (примерный возраст, гендерное выражение — если очевидно, волосы, мимика, поза, одежда, аксессуары); окружение (тип локации, элементы фона, признаки времени); освещение (источник, направление, мягкость/жёсткость, цветовая температура, тени); точку съёмки камеры (на уровне глаз / ниже / выше, дистанция) и композицию (кадрирование, акценты). Без вступлений, без рассуждений, без <think>.",
+    "ultra": "Напиши ОДИН ультрадетальный абзац (10–16 предложений, ~180–320 слов). Опираться только на видимые детали. Включи: микродетали объекта (материалы, текстуры, узоры, износ, отражения); детали людей, если есть (волосы, тон кожи, макияж, украшения, типы тканей, посадка одежды); глубину окружения (передний/средний/задний план, вывески/предметы, материалы поверхностей); анализ освещения (ключевой/заполняющий/контровой свет, направление, мягкость, блики, форма теней); перспективу камеры (угол, “ощущение” объектива, глубина резкости) и композицию (ведущие линии, негативное пространство, симметрия/асимметрия, визуальная иерархия). Без вступлений, без рассуждений, без <think>.",
+    "cinematic": "Напиши ОДИН кинематографичный абзац (8–12 предложений). Опиши сцену как стоп-кадр из фильма: объект(ы) и действие; окружение и атмосферу; световую схему (практические источники света vs рассеянный, направление, контраст); язык камеры (тип плана, угол, ощущение объектива, глубина резкости, подразумеваемое движение); композицию и настроение. Ярко, но фактически (без выдуманного сюжета). Без вступлений, без рассуждений, без <think>.",
+}
 
 
 class VisionService:
@@ -76,27 +81,67 @@ class VisionService:
         self._resize_cache: Dict[str, bytes] = {}  # file_id -> resized image bytes (cleared per job)
     
     async def list_models(self) -> List[VisionModelInfo]:
-        """List available vision models."""
+        """List available vision models from the configured backend."""
         models = []
+        backend = self.settings.vision.backend
         
-        for model in CURATED_MODELS:
-            # Check availability in configured backend
-            backend = self.settings.vision.backend
-            backend_name = model["ollama_name"] if backend == "ollama" else model["lmstudio_name"]
-            
-            is_available = await self._check_model_available(backend, backend_name)
-            
-            models.append(VisionModelInfo(
-                model_id=model["model_id"],
-                name=model["name"],
-                backend=backend,
-                backend_model_name=backend_name,
-                is_available=is_available,
-                vram_gb=model["vram_gb"],
-                description=model["description"]
-            ))
+        try:
+            if backend == "lmstudio":
+                models = await self._get_lmstudio_models()
+        except Exception as e:
+            logger.warning(f"Failed to fetch models from {backend}: {e}")
+        
+        # If no models found from API, fall back to curated list with availability check
+        if not models:
+            logger.debug("No models from API, falling back to curated list")
+            for model in CURATED_MODELS:
+                backend_name = model["lmstudio_name"]
+                is_available = await self._check_model_available(backend, backend_name)
+                
+                models.append(VisionModelInfo(
+                    model_id=model["model_id"],
+                    name=model["name"],
+                    backend=backend,
+                    backend_model_name=backend_name,
+                    is_available=is_available,
+                    vram_gb=model["vram_gb"],
+                    description=model["description"]
+                ))
         
         return models
+    
+    async def _get_lmstudio_models(self) -> List[VisionModelInfo]:
+        """Fetch available models from LM Studio API."""
+        import aiohttp
+        models = []
+        url = f"{self.settings.vision.lmstudio_url}/v1/models"
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, timeout=aiohttp.ClientTimeout(total=5)) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        for model_data in data.get("data", []):
+                            model_id = model_data.get("id", "")
+                            # Extract a friendly name from the model ID
+                            name = model_id.split("/")[-1] if "/" in model_id else model_id
+                            
+                            models.append(VisionModelInfo(
+                                model_id=model_id,
+                                name=name,
+                                backend="lmstudio",
+                                backend_model_name=model_id,
+                                is_available=True,
+                                vram_gb=None,
+                                description=f"Loaded in LM Studio"
+                            ))
+                        logger.info(f"Found {len(models)} models in LM Studio")
+        except Exception as e:
+            logger.debug(f"Could not fetch LM Studio models: {e}")
+        
+        return models
+    
+
     
     async def generate_caption(
         self,
@@ -105,6 +150,8 @@ class VisionService:
         max_length: Optional[int] = None,
         vision_model: Optional[str] = None,
         vision_backend: Optional[str] = None,
+        template_id: Optional[str] = None,
+        seed: Optional[int] = None,
         custom_prompt: Optional[str] = None,
         trigger_phrase: Optional[str] = None
     ) -> VisionGenerateResponse:
@@ -123,12 +170,12 @@ class VisionService:
         model = vision_model or self.settings.vision.default_model
         
         # Build prompt
-        prompt = self._build_prompt(style, max_length, custom_prompt, trigger_phrase)
+        prompt = self._build_prompt(style, max_length, custom_prompt, trigger_phrase, template_id)
         logger.debug(f"Vision prompt for style '{style}': {prompt[:200]}...")
         
         # Generate caption
         start_time = time.time()
-        result = await self._call_vision_model(backend, model, file_path, prompt, file_id)
+        result = await self._call_vision_model(backend, model, file_path, prompt, file_id, seed=seed)
         processing_time = int((time.time() - start_time) * 1000)
         
         logger.debug(f"Vision model raw result: {result}")
@@ -149,8 +196,69 @@ class VisionService:
             quality_flags=result.get("quality_flags"),
             processing_time_ms=processing_time,
             vision_model=model,
-            backend=backend
+            backend=backend,
+            caption_ru=result.get("caption_ru")
         )
+    
+    async def translate_text(
+        self,
+        text: str,
+        vision_model: Optional[str] = None,
+        vision_backend: Optional[str] = None,
+        direction: str = "ru_to_en"  # "ru_to_en" or "en_to_ru"
+    ) -> Dict[str, Any]:
+        """Translate text between Russian and English using LLM."""
+        import time
+        start_time = time.time()
+        
+        # Get configured backend and model
+        backend = vision_backend or self.settings.vision.backend
+        model = vision_model or self.settings.vision.default_model
+        
+        # Build translation prompt based on direction
+        if direction == "en_to_ru":
+            prompt = f"""You are a professional translator. Translate the following English text to Russian. 
+Provide ONLY the translation, no explanations, no quotes, no extra text.
+Maintain the style and tone of the original description.
+
+English text:
+{text}
+
+Russian translation:"""
+        else:  # ru_to_en (default)
+            prompt = f"""You are a professional translator. Translate the following Russian text to English. 
+Provide ONLY the translation, no explanations, no quotes, no extra text.
+Maintain the style and tone of the original description.
+
+Russian text:
+{text}
+
+English translation:"""
+        
+        # Call the model (text-only, no image)
+        if backend == "ollama":
+            response = await self._call_ollama_text(model, prompt)
+        else:  # lmstudio
+            response = await self._call_lmstudio_text(model, prompt)
+        
+        processing_time = int((time.time() - start_time) * 1000)
+        
+        # Clean up response
+        translated = response.strip()
+        # Remove quotes if the model wrapped the response
+        if translated.startswith('"') and translated.endswith('"'):
+            translated = translated[1:-1]
+        if translated.startswith("'") and translated.endswith("'"):
+            translated = translated[1:-1]
+        
+        return {
+            "translated_text": translated,
+            "processing_time_ms": processing_time,
+            "vision_model": model,
+            "backend": backend,
+            "direction": direction
+        }
+
     
     def list_jobs(self, status_filter: Optional[str] = None) -> List[CaptionJob]:
         """List caption generation jobs."""
@@ -210,6 +318,9 @@ class VisionService:
         caption_set_id: str,
         vision_model: Optional[str] = None,
         vision_backend: Optional[str] = None,
+        template_id: Optional[str] = None,
+        seed: Optional[int] = None,
+        seed_mode: Optional[str] = "fixed",
         overwrite_existing: bool = False
     ) -> CaptionJob:
         """Start auto-captioning for a caption set."""
@@ -247,6 +358,9 @@ class VisionService:
             caption_set_id=caption_set_id,
             vision_model=model,
             vision_backend=backend,
+            template_id=template_id or caption_set.template_id,
+            seed=seed,
+            seed_mode=seed_mode,
             overwrite_existing=overwrite_existing,
             status="pending",
             total_files=total_files
@@ -324,12 +438,16 @@ class VisionService:
             
             # Cache caption set properties to avoid detached instance issues
             cs_style = caption_set.style
+            cs_template_id = caption_set.template_id
             cs_max_length = caption_set.max_length
             cs_custom_prompt = caption_set.custom_prompt
             cs_trigger_phrase = caption_set.trigger_phrase
             cs_dataset_id = caption_set.dataset_id
             
-            logger.info(f"Caption job {job_id}: style={cs_style}, custom_prompt={'yes (' + str(len(cs_custom_prompt)) + ' chars)' if cs_custom_prompt else 'no'}, trigger={cs_trigger_phrase}")
+            # Determine job template (job template overrides set template)
+            job_template_id = job.template_id or cs_template_id
+            
+            logger.info(f"Caption job {job_id}: style={cs_style}, template={job_template_id}, custom_prompt={'yes (' + str(len(cs_custom_prompt)) + ' chars)' if cs_custom_prompt else 'no'}, trigger={cs_trigger_phrase}")
             
             # Get file IDs to process (just the IDs, not full objects)
             from ..models import DatasetFile
@@ -397,6 +515,8 @@ class VisionService:
                         max_length=cs_max_length,
                         vision_model=job.vision_model,
                         vision_backend=job.vision_backend,
+                        template_id=job_template_id,
+                        seed=job.seed,
                         custom_prompt=cs_custom_prompt,
                         trigger_phrase=cs_trigger_phrase
                     )
@@ -418,7 +538,10 @@ class VisionService:
                         existing_caption.source = "generated"
                         existing_caption.vision_model = job.vision_model
                         existing_caption.quality_score = result.quality_score
+                        existing_caption.quality_score = result.quality_score
                         existing_caption.quality_flags = json.dumps(result.quality_flags) if result.quality_flags else None
+                        if result.get("caption_ru"):
+                            existing_caption.caption_ru = result.get("caption_ru")
                     else:
                         # Create new caption
                         caption = Caption(
@@ -428,7 +551,8 @@ class VisionService:
                             source="generated",
                             vision_model=job.vision_model,
                             quality_score=result.quality_score,
-                            quality_flags=json.dumps(result.quality_flags) if result.quality_flags else None
+                            quality_flags=json.dumps(result.quality_flags) if result.quality_flags else None,
+                            caption_ru=result.get("caption_ru")
                         )
                         self.db.add(caption)
                     
@@ -489,6 +613,7 @@ class VisionService:
         """Check if a model is available in the backend."""
         try:
             if backend == "ollama":
+                import aiohttp
                 url = f"{self.settings.vision.ollama_url}/api/tags"
                 async with aiohttp.ClientSession() as session:
                     async with session.get(url, timeout=aiohttp.ClientTimeout(total=5)) as resp:
@@ -497,6 +622,7 @@ class VisionService:
                             models = [m["name"] for m in data.get("models", [])]
                             return model_name in models
             elif backend == "lmstudio":
+                import aiohttp
                 url = f"{self.settings.vision.lmstudio_url}/v1/models"
                 async with aiohttp.ClientSession() as session:
                     async with session.get(url, timeout=aiohttp.ClientTimeout(total=5)) as resp:
@@ -525,6 +651,7 @@ class VisionService:
         output_format = config.format.upper()
         
         try:
+            from PIL import Image
             with Image.open(image_path) as img:
                 # Get original dimensions
                 orig_width, orig_height = img.size
@@ -591,7 +718,8 @@ class VisionService:
         model: str, 
         image_path: Path, 
         prompt: str,
-        file_id: Optional[str] = None
+        file_id: Optional[str] = None,
+        seed: Optional[int] = None
     ) -> Dict[str, Any]:
         """Call vision model to generate caption."""
         # Resize image for vision model (with caching)
@@ -604,81 +732,21 @@ class VisionService:
         # Encode to base64
         image_data = base64.b64encode(image_bytes).decode("utf-8")
         
+        import aiohttp
         timeout = aiohttp.ClientTimeout(total=self.settings.vision.timeout_seconds)
         
-        if backend == "ollama":
-            return await self._call_ollama(model, image_data, prompt, timeout)
-        elif backend == "lmstudio":
-            return await self._call_lmstudio(model, image_data, prompt, timeout)
+        if backend == "lmstudio":
+            return await self._call_lmstudio(model, image_data, prompt, timeout, seed=seed)
         else:
-            raise ValueError(f"Unknown backend: {backend}")
-    
-    async def _call_ollama(
-        self, 
-        model: str, 
-        image_data: str, 
-        prompt: str,
-        timeout: aiohttp.ClientTimeout
-    ) -> Dict[str, Any]:
-        """Call Ollama API for caption generation using chat endpoint."""
-        # Use chat endpoint which properly supports think=false per Ollama docs
-        url = f"{self.settings.vision.ollama_url}/api/chat"
-        
-        payload = {
-            "model": model,
-            "messages": [
-                {
-                    "role": "user",
-                    "content": prompt,
-                    "images": [image_data]
-                }
-            ],
-            "stream": False,
-            "think": False,  # Request no thinking (may be ignored by some models)
-            "options": {
-                "temperature": 0.3,
-                "num_predict": self.settings.vision.max_tokens  # Configurable in settings
-            }
-        }
-        
-        logger.debug(f"Ollama chat request with think=False for model: {model}")
-        
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, json=payload, timeout=timeout) as resp:
-                if resp.status != 200:
-                    error_text = await resp.text()
-                    raise ValueError(f"Ollama API error: {resp.status} - {error_text}")
-                
-                data = await resp.json()
-                logger.debug(f"Ollama full response: {data}")
-                
-                # Extract response from chat format
-                message = data.get("message", {})
-                response_text = message.get("content", "")
-                thinking = message.get("thinking", "")
-                
-                # Check for thinking mode issue - model used all tokens thinking
-                if not response_text and data.get("done_reason") == "length":
-                    if thinking:
-                        logger.warning(f"Model exhausted tokens during thinking phase despite think=false. Model may not support disabling thinking.")
-                        raise ValueError("Model exhausted tokens during thinking phase. Try a different model.")
-                
-                # Log if thinking occurred anyway (for debugging)
-                if thinking:
-                    logger.debug(f"Model produced thinking output ({len(thinking)} chars) despite think=False")
-                
-                # Check for other empty response issues
-                if not response_text and data.get("done") and data.get("total_duration"):
-                    logger.warning(f"Ollama returned empty response but reported done. Full data: {data}")
-        
-        return self._parse_caption_response(response_text)
+            raise ValueError(f"Unknown or unsupported backend: {backend}")
     
     async def _call_lmstudio(
         self, 
         model: str, 
         image_data: str, 
         prompt: str,
-        timeout: aiohttp.ClientTimeout
+        timeout: "aiohttp.ClientTimeout",
+        seed: Optional[int] = None
     ) -> Dict[str, Any]:
         """Call LM Studio API for caption generation."""
         url = f"{self.settings.vision.lmstudio_url}/v1/chat/completions"
@@ -698,9 +766,21 @@ class VisionService:
                 }
             ],
             "max_tokens": 1024,
-            "temperature": 0.3
+            "temperature": 0.7 if seed is not None else 0.3  # Higher temp with seed for more variation
         }
         
+        if seed is not None:
+            payload["seed"] = seed
+            # Add unique identifier to bypass LM Studio caching
+            import time
+            payload["messages"][0]["content"][0]["text"] = f"[{seed}] " + prompt
+            logger.info(f"Using seed {seed} for LM Studio API call (temp=0.7)")
+        else:
+            logger.info("No seed provided, LM Studio will use random generation (temp=0.3)")
+
+
+        
+        import aiohttp
         async with aiohttp.ClientSession() as session:
             async with session.post(url, json=payload, timeout=timeout) as resp:
                 if resp.status != 200:
@@ -712,20 +792,59 @@ class VisionService:
         
         return self._parse_caption_response(response_text)
     
+    async def _call_lmstudio_text(self, model: str, prompt: str) -> str:
+        """Call LM Studio API for text-only generation (no image)."""
+        import aiohttp
+        url = f"{self.settings.vision.lmstudio_url}/v1/chat/completions"
+        timeout = aiohttp.ClientTimeout(total=self.settings.vision.timeout_seconds)
+        
+        payload = {
+            "model": model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            "max_tokens": 1024,
+            "temperature": 0.3
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, json=payload, timeout=timeout) as resp:
+                if resp.status != 200:
+                    error_text = await resp.text()
+                    raise ValueError(f"LM Studio API error: {resp.status} - {error_text}")
+                
+                data = await resp.json()
+                return data["choices"][0]["message"]["content"]
+    
     def _build_creative_prompt(
         self,
         style: str,
         max_length: Optional[int] = None,
         custom_prompt: Optional[str] = None,
-        trigger_phrase: Optional[str] = None
+        trigger_phrase: Optional[str] = None,
+        template_id: Optional[str] = None
     ) -> str:
         """Build the creative part of the prompt (user-customizable)."""
-        # Use custom prompt if provided
-        if custom_prompt:
+        # 1. Check for predefined templates first
+        if template_id and template_id in PROMPT_TEMPLATES:
+            logger.info(f"Using prompt template: {template_id}")
+            creative = PROMPT_TEMPLATES[template_id]
+            
+            # Special case for refine - append original text if it's in custom_prompt
+            if template_id == "refine" and custom_prompt:
+                creative += f"\n\nUser prompt to refine:\n{custom_prompt}"
+            elif template_id == "refine":
+                logger.warning("Template 'refine' selected but no custom_prompt (text to refine) provided.")
+            
+        # 2. Use custom prompt if provided (and not handled by template)
+        elif custom_prompt:
             logger.info(f"Using custom prompt ({len(custom_prompt)} chars)")
             creative = custom_prompt
         else:
-            # Build standard prompt based on style
+            # 3. Build standard prompt based on style (legacy/default behavior)
             if style == "custom":
                 logger.warning(f"Style is 'custom' but no custom_prompt provided! Falling back to natural.")
                 style = "natural"
@@ -759,7 +878,8 @@ class VisionService:
 
 Output format (JSON only, no other text):
 {
-  "caption": "Your caption here",
+  "caption": "Your English caption here",
+  "caption_ru": "Russian translation of the caption",
   "quality": {
     "sharpness": 0.0-1.0,
     "clarity": 0.0-1.0,
@@ -775,13 +895,14 @@ Output format (JSON only, no other text):
         style: str, 
         max_length: Optional[int] = None,
         custom_prompt: Optional[str] = None,
-        trigger_phrase: Optional[str] = None
+        trigger_phrase: Optional[str] = None,
+        template_id: Optional[str] = None
     ) -> str:
         """Build the complete prompt for caption generation."""
-        logger.debug(f"_build_prompt called: style={style}, custom_prompt={custom_prompt[:50] if custom_prompt else None}...")
+        logger.debug(f"_build_prompt called: style={style}, template_id={template_id}, custom_prompt={custom_prompt[:50] if custom_prompt else None}...")
         
         # Build creative part (user-customizable)
-        creative_prompt = self._build_creative_prompt(style, max_length, custom_prompt, trigger_phrase)
+        creative_prompt = self._build_creative_prompt(style, max_length, custom_prompt, trigger_phrase, template_id)
         
         # Append system output directive (always enforced)
         output_directive = self._build_output_directive()
@@ -828,6 +949,7 @@ Output format (JSON only, no other text):
                 
                 return {
                     "caption": caption_text,
+                    "caption_ru": data.get("caption_ru", ""),
                     "quality_score": overall_score,
                     "quality_flags": flags if flags else quality_details
                 }

@@ -5,75 +5,75 @@
 
 const Jobs = {
     refreshInterval: null,
-    
+
     /**
      * Initialize the jobs module
      */
     init() {
         this.bindEvents();
     },
-    
+
     /**
      * Bind event listeners
      */
     bindEvents() {
         document.getElementById('refreshJobsBtn').addEventListener('click', () => this.loadJobs());
-        
+
         // Start auto-caption button in modal
         document.getElementById('startAutoCaptionBtn').addEventListener('click', () => this.startAutoCaption());
     },
-    
+
     /**
      * Load and display jobs
      */
     async loadJobs() {
         const container = document.getElementById('jobsList');
         container.innerHTML = Utils.loadingSpinner();
-        
+
         try {
             const jobs = await API.listJobs();
-            
+
             if (jobs.length === 0) {
                 container.innerHTML = Utils.emptyState(
-                    'bi-clock-history', 
+                    'bi-clock-history',
                     'No caption jobs yet',
                     'Start auto-captioning from a dataset\'s caption set'
                 );
                 return;
             }
-            
+
             container.innerHTML = jobs.map(job => this.renderJobCard(job)).join('');
-            
+
             // Bind job action buttons
             container.querySelectorAll('[data-job-id]').forEach(card => {
                 const jobId = card.dataset.jobId;
-                
+
                 card.querySelector('.pause-btn')?.addEventListener('click', () => this.pauseJob(jobId));
                 card.querySelector('.resume-btn')?.addEventListener('click', () => this.resumeJob(jobId));
                 card.querySelector('.cancel-btn')?.addEventListener('click', () => this.cancelJob(jobId));
             });
-            
+
             // Start auto-refresh if there are running jobs
             const hasRunningJobs = jobs.some(j => j.status === 'running' || j.status === 'pending');
             this.setAutoRefresh(hasRunningJobs);
-            
+
         } catch (error) {
             container.innerHTML = Utils.emptyState('bi-exclamation-triangle', 'Error loading jobs', error.message);
         }
     },
-    
+
     /**
      * Render a job card
      */
     renderJobCard(job) {
-        const percent = job.total_files > 0 
-            ? Math.round((job.completed_files / job.total_files) * 100) 
+        const percent = job.total_files > 0
+            ? Math.round((job.completed_files / job.total_files) * 100)
             : 0;
-        
+
         const statusClass = `job-status-${job.status}`;
-        
+
         const actionButtons = this.getJobActionButtons(job);
-        
+
         return `
             <div class="job-card" data-job-id="${job.id}">
                 <div class="job-header">
@@ -115,7 +115,7 @@ const Jobs = {
             </div>
         `;
     },
-    
+
     /**
      * Get action buttons based on job status
      */
@@ -149,7 +149,7 @@ const Jobs = {
                 return '';
         }
     },
-    
+
     /**
      * Start auto-caption job
      */
@@ -159,26 +159,45 @@ const Jobs = {
             Utils.showToast('No caption set selected', 'warning');
             return;
         }
-        
-        const overwriteExisting = document.getElementById('overwriteExisting').checked;
-        
+
+        const overwriteExisting = document.getElementById('overwriteExisting')?.checked || false;
+
+        // Handle seed logic
+        const seedInput = document.getElementById('autoCaptionSeed');
+        const seedModeSelect = document.getElementById('autoCaptionSeedMode');
+        let seed = seedInput ? parseInt(seedInput.value) : null;
+        const seedMode = seedModeSelect ? seedModeSelect.value : 'fixed';
+
+        if (seedMode === 'random') {
+            seed = Math.floor(Math.random() * 1000000000);
+            if (seedInput) seedInput.value = seed;
+        } else if (seedMode === 'increment' && !isNaN(seed)) {
+            seed = seed + 1;
+            if (seedInput) seedInput.value = seed;
+        } else if (isNaN(seed)) {
+            seed = null;
+        }
+
         try {
             const job = await API.startAutoCaptionJob(captionSetId, {
-                overwrite_existing: overwriteExisting
+                overwrite_existing: overwriteExisting,
+                seed: seed,
+                seed_mode: seedMode
             });
-            
+
+
             Utils.showToast(`Started caption job for ${job.total_files} files`, 'success');
             bootstrap.Modal.getInstance(document.getElementById('autoCaptionModal')).hide();
-            
+
             // Switch to jobs view
             App.showView('jobs');
             this.loadJobs();
-            
+
         } catch (error) {
             Utils.showToast('Failed to start job: ' + error.message, 'error');
         }
     },
-    
+
     /**
      * Pause a job
      */
@@ -191,7 +210,7 @@ const Jobs = {
             Utils.showToast('Failed to pause job: ' + error.message, 'error');
         }
     },
-    
+
     /**
      * Resume a job
      */
@@ -204,7 +223,7 @@ const Jobs = {
             Utils.showToast('Failed to resume job: ' + error.message, 'error');
         }
     },
-    
+
     /**
      * Cancel a job
      */
@@ -212,7 +231,7 @@ const Jobs = {
         if (!await Utils.confirm('Cancel this job? Progress will be saved.')) {
             return;
         }
-        
+
         try {
             await API.cancelJob(jobId);
             Utils.showToast('Job cancelled', 'info');
@@ -221,7 +240,7 @@ const Jobs = {
             Utils.showToast('Failed to cancel job: ' + error.message, 'error');
         }
     },
-    
+
     /**
      * Set auto-refresh interval
      */
@@ -230,7 +249,7 @@ const Jobs = {
             clearInterval(this.refreshInterval);
             this.refreshInterval = null;
         }
-        
+
         if (enabled) {
             this.refreshInterval = setInterval(() => {
                 if (document.getElementById('view-jobs').style.display !== 'none') {

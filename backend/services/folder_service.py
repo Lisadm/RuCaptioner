@@ -189,6 +189,11 @@ class FolderService:
                     # File was restored, regenerate thumbnail if needed
                     if self._generate_thumbnail(existing_file, file_path):
                         thumbnails_generated += 1
+                
+                # [ANTI-AGENT FIX] Always check for paired caption updates for existing files
+                if self._import_paired_caption(existing_file, file_path):
+                    captions_imported += 1
+
             else:
                 # Add new file
                 new_file = self._create_file_record(folder, file_path, relative_path)

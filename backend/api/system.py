@@ -7,62 +7,45 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from ..database import get_db, get_database_path
-from ..config import get_settings, PROJECT_ROOT
+from ..database import get_db, get_database_path, get_session_factory
+from ..config import get_settings, PROJECT_ROOT, Settings
 from ..schemas import SystemStatsResponse, HealthResponse
 from ..models import TrackedFolder, TrackedFile, Dataset, CaptionSet, Caption
+from sqlalchemy import text
 from .. import __version__
+import aiohttp
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/system", tags=["system"])
 
 
 @router.get("/health", response_model=HealthResponse)
-async def health_check(db: Session = Depends(get_db)):
-    """Check system health."""
-    from sqlalchemy import text
-    settings = get_settings()
-    
-    # Check database
-    db_connected = False
+async def get_health(settings: Settings = Depends(get_settings)):
+    """Check system health and connected services."""
+    # Check Database
     try:
-        db.execute(text("SELECT 1"))
+        # Simple query to check DB connection
+        SessionLocal = get_session_factory()
+        with SessionLocal() as db:
+            db.execute(text("SELECT 1"))
         db_connected = True
     except Exception as e:
-        logger.warning(f"Database health check failed: {e}")
-        pass
-    
-    # Check Ollama availability
-    ollama_available = False
-    try:
-        import aiohttp
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                f"{settings.vision.ollama_url}/api/tags",
-                timeout=aiohttp.ClientTimeout(total=2)
-            ) as resp:
-                ollama_available = resp.status == 200
-    except Exception:
-        pass
-    
+        logger.error(f"Database health check failed: {e}")
+        db_connected = False
+
     # Check LM Studio availability
     lmstudio_available = False
     try:
-        import aiohttp
         async with aiohttp.ClientSession() as session:
-            async with session.get(
-                f"{settings.vision.lmstudio_url}/v1/models",
-                timeout=aiohttp.ClientTimeout(total=2)
-            ) as resp:
+            async with session.get(f"{settings.vision.lmstudio_url}/v1/models", timeout=2) as resp:
                 lmstudio_available = resp.status == 200
     except Exception:
         pass
-    
+
     return HealthResponse(
         status="healthy" if db_connected else "unhealthy",
         version=__version__,
         database_connected=db_connected,
-        ollama_available=ollama_available,
         lmstudio_available=lmstudio_available
     )
 
@@ -110,7 +93,6 @@ def get_config():
     return {
         "vision": {
             "backend": settings.vision.backend,
-            "ollama_url": settings.vision.ollama_url,
             "lmstudio_url": settings.vision.lmstudio_url,
             "default_model": settings.vision.default_model,
             "timeout_seconds": settings.vision.timeout_seconds,
@@ -154,10 +136,9 @@ async def save_config(config: dict):
     # Update only the sections we manage
     if "vision" in config:
         existing["vision"] = {
-            "backend": config["vision"].get("backend", "ollama"),
-            "ollama_url": config["vision"].get("ollama_url", "http://localhost:11434"),
+            "backend": config["vision"].get("backend", "lmstudio"),
             "lmstudio_url": config["vision"].get("lmstudio_url", "http://localhost:1234"),
-            "default_model": config["vision"].get("default_model", "qwen3-vl:4b"),
+            "default_model": config["vision"].get("default_model", "qwen2.5-vl-7b"),
             "timeout_seconds": int(config["vision"].get("timeout_seconds", 120)),
             "max_retries": int(config["vision"].get("max_retries", 2)),
             "max_tokens": int(config["vision"].get("max_tokens", 4096)),
@@ -205,23 +186,17 @@ async def test_backend_connection(backend: str):
     try:
         import aiohttp
         
-        if backend == "ollama":
-            url = f"{settings.vision.ollama_url}/api/tags"
-        elif backend == "lmstudio":
+        if backend == "lmstudio":
             url = f"{settings.vision.lmstudio_url}/v1/models"
         else:
-            return {"status": "error", "message": f"Unknown backend: {backend}"}
+            return {"status": "error", "message": f"Unknown or unsupported backend: {backend}"}
         
         async with aiohttp.ClientSession() as session:
             async with session.get(url, timeout=aiohttp.ClientTimeout(total=5)) as resp:
                 if resp.status == 200:
                     data = await resp.json()
-                    if backend == "ollama":
-                        model_count = len(data.get("models", []))
-                        return {"status": "ok", "message": f"Connected! {model_count} models available."}
-                    else:
-                        model_count = len(data.get("data", []))
-                        return {"status": "ok", "message": f"Connected! {model_count} models loaded."}
+                    model_count = len(data.get("data", []))
+                    return {"status": "ok", "message": f"Connected! {model_count} models loaded."}
                 else:
                     return {"status": "error", "message": f"Server returned status {resp.status}"}
     
@@ -231,3 +206,22 @@ async def test_backend_connection(backend: str):
         return {"status": "error", "message": f"Cannot connect to {backend}. Is it running?"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+
+@router.post("/shutdown")
+async def shutdown_system():
+    """Gracefully shut down the backend server."""
+    import os
+    import asyncio
+    
+    logger.info("Shutdown requested via API")
+    
+    # We use a small delay to allow the response to reach the client
+    async def delayed_exit():
+        await asyncio.sleep(0.5)
+        logger.info("Self-terminating...")
+        os._exit(0)
+    
+    asyncio.create_task(delayed_exit())
+    return {"status": "ok", "message": "Shutting down..."}
+

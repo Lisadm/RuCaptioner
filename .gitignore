@@ -67,3 +67,17 @@ logs/
 *.tmp
 *.temp
 .cache/
+release/
+*.exe
+benchmark_startup.py
+check_and_fix.py
+check_db.py
+check_models.bat
+diagnose_db.py
+fix_db.py
+verify_schema.py
+temp_task_update.txt
+temp_context7_eval/
+anti_agent_fix.py
+backend.spec
+

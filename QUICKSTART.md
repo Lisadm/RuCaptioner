@@ -6,8 +6,7 @@ This guide walks you through setting up CaptionFoundry with a vision AI backend 
 
 1. [Prerequisites](#prerequisites)
 2. [Vision Backend Setup](#vision-backend-setup)
-   - [Option A: Ollama (Recommended)](#option-a-ollama-recommended)
-   - [Option B: LM Studio](#option-b-lm-studio)
+   - [Setup LM Studio](#setup-lm-studio)
 3. [CaptionFoundry Installation](#captionfoundry-installation)
 4. [First Run](#first-run)
 5. [Captioning Your First Dataset](#captioning-your-first-dataset)
@@ -29,75 +28,9 @@ Before installing CaptionFoundry, ensure you have:
 
 ## Vision Backend Setup
 
-CaptionFoundry requires a local vision model server to generate captions. You have two options:
+CaptionFoundry requires a local vision model server to generate captions. We use **LM Studio** for this purpose.
 
-### Option A: Ollama (Recommended)
-
-[Ollama](https://ollama.ai/) is the easiest way to run local AI models. It handles model downloading, GPU acceleration, and provides a simple API.
-
-#### 1. Install Ollama
-
-**Windows:**
-Download and run the installer from [ollama.ai/download](https://ollama.ai/download)
-
-**Linux:**
-```bash
-curl -fsSL https://ollama.ai/install.sh | sh
-```
-
-**macOS:**
-```bash
-brew install ollama
-```
-
-#### 2. Start Ollama
-
-Ollama should start automatically after installation. If not:
-
-```bash
-ollama serve
-```
-
-This starts the Ollama server on `http://localhost:11434`
-
-#### 3. Pull a Vision Model
-
-Open a terminal and pull a vision model. We recommend **Qwen3-VL** for best captioning quality:
-
-**Small (4B parameters) - Fast, good quality:**
-```bash
-ollama pull qwen/qwen3-vl-4b
-```
-
-**Medium (8B parameters) - Better quality, slower:**
-```bash
-ollama pull qwen/qwen3-vl-8b
-```
-
-**Alternative models:**
-```bash
-# Qwen 2.5 VL (non-thinking, faster)
-ollama pull qwen2.5-vl:7b
-
-# LLaVA (good general purpose)
-ollama pull llava:7b
-
-# Moondream (very fast, smaller)
-ollama pull moondream
-```
-
-#### 4. Verify Installation
-
-Test that the model works:
-```bash
-ollama run qwen/qwen3-vl-4b "describe this image" --image path/to/any/image.jpg
-```
-
-You should see a description of the image.
-
----
-
-### Option B: LM Studio
+### Setup LM Studio
 
 [LM Studio](https://lmstudio.ai/) provides a GUI for running local models with more control over parameters.
 
@@ -109,24 +42,19 @@ Download from [lmstudio.ai](https://lmstudio.ai/) and install.
 
 1. Open LM Studio
 2. Go to the **Discover** tab
-3. Search for a vision model (e.g., "qwen vl" or "llava")
+3. Search for a vision model. We recommend:
+   - **Qwen2.5-VL 7B** (Excellent quality & speed)
+   - **Qwen2.5-VL 3B** (Faster, fewer resources)
+   - **LLaVA 1.6** (Standard option)
 4. Download your preferred model
 
 #### 3. Start the Local Server
 
 1. Go to the **Local Server** tab (left sidebar)
-2. Load your vision model
+2. Load your vision model from the dropdown at the top
 3. Click **Start Server**
-4. Note the server URL (default: `http://localhost:1234`)
+4. Ensure the server URL is `http://localhost:1234` (default)
 
-#### 4. Configure CaptionFoundry
-
-Update `config/settings.yaml`:
-```yaml
-vision:
-  backend: lmstudio
-  lmstudio_url: http://localhost:1234
-```
 
 ---
 
@@ -157,11 +85,10 @@ Edit `config/settings.yaml` to match your setup:
 
 ```yaml
 vision:
-  backend: ollama                    # "ollama" or "lmstudio"
-  ollama_url: http://localhost:11434
+  backend: lmstudio
   lmstudio_url: http://localhost:1234
-  default_model: qwen/qwen3-vl-4b    # Your installed model
-  max_tokens: 8192                   # Important for thinking models!
+  default_model: qwen2.5-vl-7b        # Or whichever model you loaded
+  max_tokens: 4096
   timeout_seconds: 120
 ```
 
@@ -173,14 +100,7 @@ vision:
 
 #### 1. Start Your Vision Backend
 
-Make sure Ollama or LM Studio is running with your vision model loaded.
-
-**Ollama:**
-```bash
-ollama serve
-```
-
-**LM Studio:** Start the local server with your model loaded.
+Make sure LM Studio is running (Server Mode) with your vision model loaded.
 
 #### 2. Start CaptionFoundry
 
@@ -352,28 +272,24 @@ Example use cases for custom prompts:
 
 ### "No vision models found"
 
-1. Check that Ollama/LM Studio is running
-2. Verify you've pulled/downloaded a vision model
-3. Test with: `ollama list` (should show your model)
+1. Check that LM Studio is running in Server Mode
+2. Verify you've loaded a vision model in LM Studio
+3. Check the server logs in LM Studio
 
 ### Captions are cut off
 
-Increase `max_tokens` in `config/settings.yaml`:
-```yaml
-vision:
-  max_tokens: 8192  # or higher
-```
+Increase `max_tokens` in `config/settings.yaml`.
 
 ### Slow captioning
 
-1. Use a smaller model (try `moondream`)
-2. Ensure GPU is being used (check Ollama output for "cuda" or "metal")
+1. Use a smaller model (e.g., Qwen2.5-VL 3B)
+2. Ensure GPU offload is enabled in LM Studio settings
 3. Close other GPU-intensive applications
 
 ### Out of memory
 
 1. Use a smaller model
-2. Restart Ollama: `ollama stop` then `ollama serve`
+2. Reduce context length in LM Studio
 3. Close other applications using GPU memory
 
 ---

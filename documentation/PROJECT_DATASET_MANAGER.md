@@ -33,7 +33,7 @@ A standalone desktop application for managing image/video datasets used for trai
 - **Virtual Dataset Management**: Track images anywhere on disk without copying
 - **Multi-Caption Sets**: Create multiple caption styles per dataset (natural language, detailed, tags, etc.)
 - **Trigger Phrase Support**: Set caption prefixes per caption set for LORA trigger words (e.g., "Nova Chorus, a woman")
-- **Auto-Captioning**: Generate captions using vision models (Ollama-based, extensible)
+- **Auto-Captioning**: Generate captions using vision models (extensible)
 - **Quality Scoring**: Automatic quality assessment for filtering and weighting
 - **Flexible Export**: Export with numbering, format conversion, and resolution adjustment
 - **Caption Import**: Auto-detect and import existing caption files
@@ -45,7 +45,7 @@ A standalone desktop application for managing image/video datasets used for trai
 - **Backend**: Python + FastAPI (async, proven architecture)
 - **Frontend**: HTML/JavaScript + Bootstrap (simple, no build step required)
 - **Database**: SQLite (portable, single-file, sufficient for local use)
-- **Vision**: Ollama + LM Studio backends with Qwen3-VL family models
+- **Vision**: LM Studio backend with Qwen3-VL family models
 
 ### Why Electron?
 - **Native filesystem access**: Real folder pickers and drag-and-drop with full `file.path`
@@ -119,7 +119,7 @@ A standalone desktop application for managing image/video datasets used for trai
 │  └───────────────────────────────────┼────────────────┘   │
 │                                      │                     │
 │  ┌───────────────────────────────────▼────────────────┐   │
-│  │              Ollama Integration                     │   │
+│  │             LM Studio Integration                   │   │
 │  │   (Vision Model Inference - Qwen3-VL family)       │   │
 │  └─────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
@@ -154,7 +154,7 @@ captionfoundry/
 │   │   ├── folder_service.py      # Track folders and scan files
 │   │   ├── dataset_service.py     # Dataset CRUD operations
 │   │   ├── caption_service.py     # Caption management
-│   │   ├── vision_service.py      # Vision model integration (Ollama + LM Studio)
+│   │   ├── vision_service.py      # Vision model integration (LM Studio)
 │   │   ├── export_service.py      # Export datasets with processing
 │   │   └── thumbnail_service.py   # Thumbnail generation/caching (256px)
 │   │
@@ -1137,11 +1137,11 @@ The vision system architecture is directly adapted from Chorus Engine's proven i
 
 ### Vision Model Configuration
 
-**Dual Backend Support**: CaptionFoundry supports both Ollama and LM Studio as vision model backends. Each model in the curated list includes proper names for both backends, and the system can automatically pull/download models if not already available.
+**Single Backend Support**: CaptionFoundry utilizes LM Studio as the vision model backend. Each model in the curated list includes proper names for LM Studio.
 
-**Default Backend**: Ollama (recommended for most users due to simpler setup and broader model support)
+**Default Backend**: LM Studio
 
-**Quantization Handling**: The curated models list includes default quantizations (Q4_K_M for LM Studio, standard for Ollama). Users who want specific quantizations can use the "Custom Model Name" feature to manually specify any model name/quantization supported by their chosen backend.
+**Quantization Handling**: The curated models list includes default quantizations (Q4_K_M for LM Studio). Users who want specific quantizations can use the "Custom Model Name" feature to manually specify any model name/quantization supported.
 
 Available vision models (configurable in settings.yaml):
 

@@ -150,6 +150,7 @@ def get_caption_for_file(
             "vision_model": caption.vision_model,
             "quality_score": caption.quality_score,
             "quality_flags": quality_flags,
+            "caption_ru": caption.caption_ru,
             "created_date": caption.created_date.isoformat() if caption.created_date else None,
             "modified_date": caption.updated_date.isoformat() if caption.updated_date else None
         } if caption else None
@@ -174,7 +175,7 @@ def update_caption(
 ):
     """Update a caption's text."""
     service = CaptionService(db)
-    caption = service.update_caption(caption_id, update.text)
+    caption = service.update_caption(caption_id, update.text, update.caption_ru)
     if not caption:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Caption not found")
     return caption

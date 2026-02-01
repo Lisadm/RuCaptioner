@@ -5,12 +5,41 @@
   "main": "electron/main.js",
   "scripts": {
     "start": "electron .",
-    "dev": "electron . --dev"
+    "dev": "electron . --dev",
+    "build-backend": "pyinstaller run_backend.py --name backend --onefile --hidden-import=sqlalchemy",
+    "dist": "npm run build-backend && electron-builder"
+  },
+  "build": {
+    "appId": "com.rucaptioner.app",
+    "productName": "RuCaptioner",
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": [
+        "zip",
+        "dir"
+      ],
+      "icon": "frontend/img/logo.png"
+    },
+    "files": [
+      "electron/**/*",
+      "frontend/**/*",
+      "package.json",
+      "node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "dist/backend.exe",
+        "to": "backend/backend.exe"
+      }
+    ]
   },
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^28.0.0"
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
   },
   "dependencies": {
     "tree-kill": "^1.2.2"
