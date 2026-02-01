@@ -506,3 +506,16 @@ kbd {
     border: 1px solid var(--cf-border);
     border-radius: 0.25rem;
 }
+/* Fullscreen Stacking Fix */
+#fullscreenOverlay {
+    z-index: 3000 !important;
+}
+
+/* Ensure confirmation diallog is above fullscreen */
+body.confirm-active .modal-backdrop:last-of-type {
+    z-index: 4000 !important;
+}
+
+body.confirm-active #confirmModal {
+    z-index: 4010 !important;
+}

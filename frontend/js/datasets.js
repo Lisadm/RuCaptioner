@@ -77,7 +77,7 @@ const Datasets = {
             dropZone.classList.remove('active', 'drag-over');
 
             if (!this.currentDatasetId) {
-                Utils.showToast('Please select a dataset first', 'warning');
+                Utils.showToast(i18n.t('dataset_select_first'), 'warning');
                 return;
             }
 
@@ -98,11 +98,11 @@ const Datasets = {
             const imageFiles = files.filter(f => f.type.startsWith('image/'));
 
             if (imageFiles.length === 0) {
-                Utils.showToast('No image files found in drop', 'warning');
+                Utils.showToast(i18n.t('no_images_found_drop'), 'warning');
                 return;
             }
 
-            Utils.showToast(`External file drops require the files to be in a tracked folder first`, 'info');
+            Utils.showToast(i18n.t('external_drop_warning'), 'info');
         });
 
         // Add button for adding images from folder
@@ -119,14 +119,14 @@ const Datasets = {
 
         try {
             await API.addFilesToDataset(this.currentDatasetId, fileIds);
-            Utils.showToast(`Added ${fileIds.length} image(s) to dataset`, 'success');
+            Utils.showToast(`${i18n.t('added_images_to_dataset')}: ${fileIds.length}`, 'success');
             await this.selectDataset(this.currentDatasetId);
         } catch (error) {
             // Check if it's a duplicate error
             if (error.message.includes('already')) {
-                Utils.showToast('Some images are already in the dataset', 'info');
+                Utils.showToast(i18n.t('images_already_in_dataset'), 'info');
             } else {
-                Utils.showToast('Failed to add images: ' + error.message, 'error');
+                Utils.showToast(i18n.t('failed_add_images') + ': ' + error.message, 'error');
             }
         }
     },
@@ -141,7 +141,7 @@ const Datasets = {
         }
 
         // For now, show a simple toast - full modal implementation would be added later
-        Utils.showToast('Go to Folders view and drag images here, or select images and use "Add to Dataset"', 'info');
+        Utils.showToast(i18n.t('add_from_folder_hint'), 'info');
     },
 
     /**
@@ -268,9 +268,42 @@ const Datasets = {
         document.getElementById('datasetCaptionSaveBtn')?.addEventListener('click', () => this.saveCaption());
         document.getElementById('datasetCaptionCopyImported')?.addEventListener('click', () => this.copyImportedCaption());
         document.getElementById('datasetCaptionGenerateBtn')?.addEventListener('click', () => this.generateCaption());
-        document.getElementById('datasetCaptionTranslateBtn')?.addEventListener('click', () => this.translateCaption());
+
+        // Navigation buttons in caption modal
         document.getElementById('datasetCaptionPrevBtn')?.addEventListener('click', () => this.navigatePrev());
         document.getElementById('datasetCaptionNextBtn')?.addEventListener('click', () => this.navigateNext());
+
+        // Delete button in caption modal
+        const deleteBtn = document.getElementById('datasetCaptionDeleteBtn');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', () => {
+                console.log('[Datasets] Delete button clicked for file:', this.currentEditingFileId);
+                if (this.currentEditingFileId) {
+                    // Ask for confirmation since this is a destructive action
+                    Utils.confirm('Remove this image from the dataset?').then(confirmed => {
+                        if (confirmed) {
+                            this.removeImageFromDataset(this.currentEditingFileId).then(() => {
+                                console.log('[Datasets] Delete successful, closing modal');
+                                // If successful (and confirmation wasn't cancelled), close modal
+                                // Check if file is still in list (if remove failed or cancelled)
+                                if (!this.currentDatasetFiles.includes(this.currentEditingFileId)) {
+                                    const modalEl = document.getElementById('datasetCaptionModal');
+                                    const modal = bootstrap.Modal.getInstance(modalEl);
+                                    if (modal) modal.hide();
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+        } else {
+            console.error('[Datasets] Delete button not found in DOM!');
+        }
+
+        // Fullscreen toggle
+
+        // Translate button
+        document.getElementById('datasetCaptionTranslateBtn')?.addEventListener('click', () => this.translateCaption());
 
         // Template change - show/hide manual instruction
         document.getElementById('datasetCaptionTemplate')?.addEventListener('change', (e) => {
@@ -287,36 +320,6 @@ const Datasets = {
             this.lastGeneratedCaption = null;
         });
 
-
-        // Keyboard navigation for caption modal (arrow keys)
-        document.addEventListener('keydown', (e) => {
-            // Only handle arrow keys when caption modal is open
-            const modal = document.getElementById('datasetCaptionModal');
-            if (!modal || !modal.classList.contains('show')) return;
-
-            // Don't navigate if user is typing in a textarea or input
-            const activeElement = document.activeElement;
-            if (activeElement && (activeElement.tagName === 'TEXTAREA' || activeElement.tagName === 'INPUT')) {
-                return;
-            }
-
-            if (e.code === 'ArrowLeft') {
-                e.preventDefault();
-                this.navigatePrev();
-            } else if (e.code === 'ArrowRight') {
-                e.preventDefault();
-                this.navigateNext();
-            } else if (e.code === 'KeyF') {
-                e.preventDefault();
-                this.toggleFullscreen();
-            } else if (e.code === 'Escape') {
-                const fullscreenOverlay = document.getElementById('fullscreenOverlay');
-                if (fullscreenOverlay && !fullscreenOverlay.classList.contains('d-none')) {
-                    e.preventDefault();
-                    this.toggleFullscreen();
-                }
-            }
-        });
     },
 
     /**
@@ -328,6 +331,7 @@ const Datasets = {
 
         if (overlay.classList.contains('d-none')) {
             overlay.classList.remove('d-none');
+            document.body.classList.add('fullscreen-active');
             // Ensure image source is synced
             const preview = document.getElementById('datasetCaptionPreview');
             const fullscreen = document.getElementById('fullscreenImage');
@@ -336,6 +340,7 @@ const Datasets = {
             }
         } else {
             overlay.classList.add('d-none');
+            document.body.classList.remove('fullscreen-active');
         }
     },
 
@@ -1743,6 +1748,21 @@ const Datasets = {
         } catch (error) {
             Utils.showToast('Failed to update caption set: ' + error.message, 'error');
         }
+    },
+
+    handleKeyboardDelete() {
+        if (!this.currentEditingFileId) return;
+        Utils.confirm('Remove this image from the dataset?').then(confirmed => {
+            if (confirmed) {
+                this.removeImageFromDataset(this.currentEditingFileId).then(() => {
+                    const modalEl = document.getElementById('datasetCaptionModal');
+                    if (!this.currentDatasetFiles.includes(this.currentEditingFileId)) {
+                        const modal = bootstrap.Modal.getInstance(modalEl);
+                        if (modal) modal.hide();
+                    }
+                });
+            }
+        });
     }
 };
 

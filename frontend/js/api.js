@@ -166,6 +166,10 @@ const API = {
         return this.request(`/files/${fileId}`);
     },
 
+    async deleteFile(fileId) {
+        return this.request(`/files/${fileId}`, { method: 'DELETE' });
+    },
+
     // ============ Dataset Endpoints ============
 
     async listDatasets(search = null) {

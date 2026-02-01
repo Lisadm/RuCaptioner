@@ -95,6 +95,15 @@ const App = {
             console.error('Settings button not found');
         }
 
+        // Trash button
+        const trashBtn = document.getElementById('trashBtn');
+        if (trashBtn) {
+            trashBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                Folders.openTrashModal();
+            });
+        }
+
         // Save settings button
         document.getElementById('saveSettingsBtn')?.addEventListener('click', () => {
             App.saveSettings();
@@ -117,7 +126,7 @@ const App = {
             this.populateSettingsForm(config);
             this.settingsModal.show();
         } catch (error) {
-            Utils.showToast('Failed to load settings: ' + error.message, 'danger');
+            Utils.showToast(i18n.t('settings_load_failed') + ': ' + error.message, 'danger');
         }
     },
 
@@ -146,6 +155,9 @@ const App = {
 
         // Debug
         document.getElementById('settings_debug').checked = config.server?.debug || false;
+
+        // Trash
+        document.getElementById('settings_trash_size').value = localStorage.getItem('cf_trash_limit') || 100;
     },
 
     /**
@@ -175,17 +187,22 @@ const App = {
             }
         };
 
+        // Save Trash Settings (LocalStorage)
+        const trashLimit = parseInt(document.getElementById('settings_trash_size').value) || 100;
+        localStorage.setItem('cf_trash_limit', trashLimit);
+        Folders.trashLimit = trashLimit;
+
         try {
             const saveBtn = document.getElementById('saveSettingsBtn');
             saveBtn.disabled = true;
             saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving...';
 
             const result = await API.saveConfig(config);
-            Utils.showToast(result.message || 'Settings saved successfully', 'success');
+            Utils.showToast(result.message || i18n.t('settings_saved_success'), 'success');
             this.settingsModal.hide();
 
         } catch (error) {
-            Utils.showToast('Failed to save settings: ' + error.message, 'danger');
+            Utils.showToast(i18n.t('settings_save_failed') + ': ' + error.message, 'danger');
         } finally {
             const saveBtn = document.getElementById('saveSettingsBtn');
             saveBtn.disabled = false;
@@ -222,7 +239,7 @@ const App = {
 
         } catch (error) {
             btn.innerHTML = '<i class="bi bi-x-lg text-danger"></i>';
-            Utils.showToast('Connection test failed: ' + error.message, 'danger');
+            Utils.showToast(i18n.t('connection_test_failed') + ': ' + error.message, 'danger');
 
             setTimeout(() => {
                 btn.disabled = false;
@@ -262,6 +279,17 @@ const App = {
 
         // Load view-specific data
         this.onViewChange(viewName);
+    },
+
+    /**
+     * View-aware fullscreen toggle proxy
+     */
+    toggleFullscreen() {
+        if (this.currentView === 'folders' && window.Folders) {
+            window.Folders.toggleFullscreen();
+        } else if (this.currentView === 'datasets' && window.Datasets) {
+            window.Datasets.toggleFullscreen();
+        }
     },
 
     /**
@@ -315,15 +343,15 @@ const App = {
             const health = await API.healthCheck();
 
             if (health.status === 'healthy') {
-                statusEl.innerHTML = '<i class="bi bi-circle-fill text-success"></i> Connected';
+                statusEl.innerHTML = `<i class="bi bi-circle-fill text-success"></i> ${i18n.t('nav_status_connected')}`;
                 statusEl.title = `LM Studio: ${health.lmstudio_available ? '✓' : '✗'}`;
             } else {
-                statusEl.innerHTML = '<i class="bi bi-circle-fill text-warning"></i> Unhealthy';
-                statusEl.title = 'Database connection issue';
+                statusEl.innerHTML = `<i class="bi bi-circle-fill text-warning"></i> ${i18n.t('status_unhealthy')}`;
+                statusEl.title = i18n.t('status_db_issue');
             }
         } catch (error) {
-            statusEl.innerHTML = '<i class="bi bi-circle-fill text-danger"></i> Disconnected';
-            statusEl.title = 'Cannot reach backend server';
+            statusEl.innerHTML = `<i class="bi bi-circle-fill text-danger"></i> ${i18n.t('nav_status_disconnected')}`;
+            statusEl.title = i18n.t('status_server_unreachable');
         }
     },
 
@@ -350,6 +378,144 @@ const App = {
 // Initialize on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
     App.init();
+
+    // Global keyboard manager for prioritised hotkeys
+    window.addEventListener('keydown', (e) => {
+        // Refined typing check: allow hotkeys on checkboxes/radios/buttons
+        const tag = e.target.tagName;
+        const isDetails = e.target.isContentEditable;
+        const isInput = tag === 'INPUT' || tag === 'TEXTAREA';
+        // Only block if it's a text-like input
+        const isTyping = isDetails || (isInput && !['checkbox', 'radio', 'button', 'submit', 'reset', 'file'].includes(e.target.type));
+
+        // If a blocking confirmation dialog is open, let it handle the input (specifically Enter/Escape)
+        const confirmModal = document.getElementById('confirmModal');
+        const isConfirmOpen = confirmModal && (confirmModal.classList.contains('show') || confirmModal.style.display === 'block' || document.body.classList.contains('confirm-active'));
+        if (isConfirmOpen) return;
+
+        // Undo/Redo (Ctrl+Z / Ctrl+Y)
+        const isCtrl = e.ctrlKey || e.metaKey;
+        if (isCtrl && !isTyping) {
+            // Use e.code for layout independence (works with Russian 'я'/'н')
+            if (e.code === 'KeyZ') {
+                e.preventDefault();
+                if (window.Folders && window.Folders.undoDelete) window.Folders.undoDelete();
+                return;
+            }
+            if (e.code === 'KeyY') {
+                e.preventDefault();
+                if (window.Folders && window.Folders.redoDelete) window.Folders.redoDelete();
+                return;
+            }
+        }
+
+        const foldersModal = document.getElementById("imageDetailModal");
+        const datasetsModal = document.getElementById("datasetCaptionModal");
+        const fullscreenOverlay = document.getElementById("fullscreenOverlay");
+
+        const isFoldersModalOpen = foldersModal && foldersModal.classList.contains("show");
+        const isDatasetsModalOpen = datasetsModal && datasetsModal.classList.contains("show");
+        const isFullscreenActive = fullscreenOverlay && !fullscreenOverlay.classList.contains("d-none");
+
+        // 1. Deletion (Highest Priority, only if a modal or fullscreen is active)
+        if (e.key === 'Delete') {
+            // CRITICAL: Double check it is NOT the F key (just in case of weird mapping)
+            if (e.code === 'KeyF' || e.key === 'f' || e.key === 'F') return;
+
+            // DEBUG: Trace execution
+            if (e.key === 'Delete') {
+                console.warn("[App] Delete Key Detected. Calling deleteSelectedFiles...");
+            }
+
+            if (isFoldersModalOpen || isDatasetsModalOpen || isFullscreenActive || App.currentView === 'folders') {
+                if (isTyping) return; // Let browser handle text editing
+
+                e.preventDefault();
+                e.stopImmediatePropagation(); // Don't let other listeners catch this
+
+                // Handle Folders View
+                if (App.currentView === 'folders') {
+                    if (isFoldersModalOpen || (isFullscreenActive && App.currentView === 'folders')) {
+                        // Detail View Delete
+                        if (window.Folders && window.Folders.currentDetailFileId) {
+                            window.Folders.deleteSingleFile(window.Folders.currentDetailFileId);
+                        }
+                    } else {
+                        // Thumbnail View Delete (Bulk)
+                        console.warn("DEBUG: Checking deleteSelectedFiles...", typeof window.Folders?.deleteSelectedFiles);
+                        if (window.Folders && typeof window.Folders.deleteSelectedFiles === 'function') {
+                            window.Folders.deleteSelectedFiles();
+                        } else {
+                            console.error("CRITICAL ERROR: window.Folders.deleteSelectedFiles is NOT a function!");
+                        }
+                    }
+                }
+                // Handle Datasets View
+                else if (isDatasetsModalOpen || (isFullscreenActive && App.currentView === 'datasets')) {
+                    if (window.Datasets && typeof window.Datasets.handleKeyboardDelete === 'function') {
+                        window.Datasets.handleKeyboardDelete();
+                    }
+                }
+                return;
+            }
+        }
+
+        // 2. Navigation and Fullscreen (only if not typing)
+        if (!isTyping) {
+            const isNavKey = e.key === 'ArrowLeft' || e.key === 'ArrowRight';
+            const isFullscreenKey = e.code === 'KeyF';
+            const isEscape = e.key === 'Escape';
+
+            if (isNavKey || isFullscreenKey || isEscape) {
+                // If in Folders modal/fullscreen
+                if (isFoldersModalOpen || (isFullscreenActive && App.currentView === 'folders')) {
+                    if (isNavKey) {
+                        e.preventDefault();
+                        if (e.key === 'ArrowLeft') window.Folders.navigatePrev();
+                        else window.Folders.navigateNext();
+                    } else if (isFullscreenKey) {
+                        e.preventDefault();
+                        window.Folders.toggleFullscreen();
+                    } else if (isEscape && isFullscreenActive) {
+                        e.preventDefault();
+                        window.Folders.toggleFullscreen();
+                    }
+                    if (isNavKey || isFullscreenKey || (isEscape && isFullscreenActive)) {
+                        e.stopImmediatePropagation();
+                        return;
+                    }
+                }
+
+                // If in Datasets modal/fullscreen
+                if (isDatasetsModalOpen || (isFullscreenActive && App.currentView === 'datasets')) {
+                    if (isNavKey) {
+                        e.preventDefault();
+                        if (e.key === 'ArrowLeft') window.Datasets.navigatePrev();
+                        else window.Datasets.navigateNext();
+                    } else if (isFullscreenKey) {
+                        e.preventDefault();
+                        window.Datasets.toggleFullscreen();
+                    } else if (isEscape && isFullscreenActive) {
+                        e.preventDefault();
+                        window.Datasets.toggleFullscreen();
+                    }
+                    if (isNavKey || isFullscreenKey || (isEscape && isFullscreenActive)) {
+                        e.stopImmediatePropagation();
+                        return;
+                    }
+                }
+
+                // Global Escape for any open fullscreen (fallback)
+                if (isEscape && isFullscreenActive) {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                    if (App.currentView === 'folders') window.Folders.toggleFullscreen();
+                    else window.Datasets.toggleFullscreen();
+                    return;
+                }
+            }
+        }
+    }, true);
 });
 
 // Make available globally

@@ -110,6 +110,40 @@ class FolderService:
         logger.info(f"Removed tracked folder: {folder.path}")
         return True
     
+    def delete_file(self, file_id: str) -> bool:
+        """Delete a file from disk and database."""
+        file = self.db.query(TrackedFile).filter(TrackedFile.id == file_id).first()
+        if not file:
+            return False
+        
+        # Paths to delete
+        paths_to_remove = [
+            Path(file.absolute_path),
+            Path(file.absolute_path).with_suffix('.txt')
+        ]
+        
+        if file.thumbnail_path:
+            settings = get_settings()
+            thumbnail_path = PROJECT_ROOT / settings.thumbnails.cache_path / file.thumbnail_path
+            paths_to_remove.append(thumbnail_path)
+            
+        # Remove files
+        for path in paths_to_remove:
+            try:
+                if path.exists():
+                    path.unlink()
+                    logger.debug(f"Deleted file: {path}")
+            except Exception as e:
+                logger.warning(f"Failed to delete {path}: {e}")
+                # Continue deleting other files/DB record even if one fails
+        
+        # Remove DB record
+        self.db.delete(file)
+        self.db.commit()
+        logger.info(f"Deleted file record: {file.filename}")
+        
+        return True
+    
     def scan_folder(self, folder_id: str) -> FolderScanResult:
         """Scan a folder for image files."""
         start_time = time.time()
@@ -360,11 +394,34 @@ class FolderService:
             return False
         
         try:
-            caption_text = caption_path.read_text(encoding='utf-8').strip()
-            if caption_text:
-                tracked_file.imported_caption = caption_text
+            # Try reading with multiple encodings
+            content = None
+            encodings = ['utf-8', 'cp1251', 'latin1']
+            detected_encoding = None
+            
+            for encoding in encodings:
+                try:
+                    content = caption_path.read_text(encoding=encoding).strip()
+                    detected_encoding = encoding
+                    break
+                except UnicodeDecodeError:
+                    continue
+            
+            if content:
+                # Auto-convert to UTF-8 if needed
+                if detected_encoding and detected_encoding != 'utf-8':
+                    try:
+                        caption_path.write_text(content, encoding='utf-8')
+                        logger.info(f"Converted caption file {file_path.name} from {detected_encoding} to utf-8")
+                    except Exception as e:
+                        logger.error(f"Failed to convert caption file {caption_path} to utf-8: {e}")
+
+                tracked_file.imported_caption = content
                 logger.debug(f"Imported caption for {file_path.name}")
                 return True
+            else:
+                logger.warning(f"Could not decode caption file {caption_path} with any supported encoding.")
+                
         except Exception as e:
             logger.warning(f"Could not read caption file {caption_path}: {e}")
         

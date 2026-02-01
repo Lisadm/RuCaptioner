@@ -160,10 +160,14 @@ const Utils = {
     /**
      * Show a confirmation dialog
      */
-    async confirm(message, title = 'Confirm') {
+    async confirm(message, title = null) {
+        if (!title) title = (typeof i18n !== 'undefined') ? i18n.t('confirm_title') : 'Confirm';
         return new Promise((resolve) => {
             const modalEl = document.getElementById('confirmModal');
-            const modal = new bootstrap.Modal(modalEl);
+            let bootstrapModal = bootstrap.Modal.getInstance(modalEl);
+            if (!bootstrapModal) {
+                bootstrapModal = new bootstrap.Modal(modalEl);
+            }
 
             // Set title and message
             document.getElementById('confirmModalTitle').textContent = title;
@@ -177,24 +181,119 @@ const Utils = {
             confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
             cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
 
-            // Add new event listeners
-            newConfirmBtn.addEventListener('click', () => {
-                modal.hide();
-                resolve(true);
-            });
+            // Cleanup function to avoid code duplication
+            const cleanup = (value) => {
+                document.body.classList.remove('confirm-active');
+                window.removeEventListener('keydown', handleKeyDown, true);
+                modalEl.removeEventListener('hidden.bs.modal', handleHidden);
+                bootstrapModal.hide();
+                resolve(value);
+            };
 
-            newCancelBtn.addEventListener('click', () => {
-                modal.hide();
-                resolve(false);
-            });
+            // Add new event listeners
+            newConfirmBtn.addEventListener('click', () => cleanup(true));
+            newCancelBtn.addEventListener('click', () => cleanup(false));
+
+            // Handle Enter key for confirmation
+            const handleKeyDown = (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    cleanup(true);
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                    cleanup(false);
+                }
+            };
 
             // Handle modal close (X button or backdrop click)
             const handleHidden = () => {
                 modalEl.removeEventListener('hidden.bs.modal', handleHidden);
-                resolve(false);
+                cleanup(false);
+            };
+
+            modalEl.addEventListener('hidden.bs.modal', handleHidden);
+            window.addEventListener('keydown', handleKeyDown, true);
+
+            document.body.classList.add('confirm-active');
+            bootstrapModal.show();
+        });
+    },
+
+    /**
+     * Show a confirmation dialog with an optional checkbox
+     * returns Promise<{ confirmed: boolean, checked: boolean }>
+     */
+    async confirmWithCheckbox(message, title = null, checkboxLabel = null) {
+        if (!title) title = (typeof i18n !== 'undefined') ? i18n.t('confirm_title') : 'Confirm';
+
+        return new Promise((resolve) => {
+            const modalEl = document.getElementById('confirmModal');
+            const modal = new bootstrap.Modal(modalEl);
+
+            // Set title and message
+            document.getElementById('confirmModalTitle').textContent = title;
+            document.getElementById('confirmModalBody').textContent = message;
+
+            // Handle checkbox
+            const checkboxContainer = document.getElementById('confirmModalCheckboxContainer');
+            const checkbox = document.getElementById('confirmModalCheckbox');
+            const checkboxLabelEl = document.getElementById('confirmModalCheckboxLabel');
+
+            if (checkboxLabel && checkboxContainer) {
+                checkboxContainer.style.display = 'block';
+                checkboxLabelEl.textContent = checkboxLabel;
+                checkbox.checked = false; // Reset
+            } else if (checkboxContainer) {
+                checkboxContainer.style.display = 'none';
+            }
+
+            // Remove any existing event listeners by cloning buttons
+            const confirmBtn = document.getElementById('confirmModalConfirm');
+            const cancelBtn = document.getElementById('confirmModalCancel');
+            const newConfirmBtn = confirmBtn.cloneNode(true);
+            const newCancelBtn = cancelBtn.cloneNode(true);
+            confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+            cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+
+            // Add new event listeners
+            newConfirmBtn.addEventListener('click', () => {
+                const isChecked = checkbox ? checkbox.checked : false;
+                modal.hide();
+                resolve({ confirmed: true, checked: isChecked });
+            });
+
+            newCancelBtn.addEventListener('click', () => {
+                const isChecked = checkbox ? checkbox.checked : false;
+                modal.hide();
+                resolve({ confirmed: false, checked: isChecked });
+            });
+
+            // Handle Enter key
+            const handleKeydown = (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    newConfirmBtn.click();
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    e.stopImmediatePropagation(); // FORCE STOP all other handlers (Bootstrap, app.js)
+                    newCancelBtn.click();
+                }
+            };
+            // Use capture phase to intercept Esc before Bootstrap/Global handlers
+            window.addEventListener('keydown', handleKeydown, true);
+
+            // Handle modal close (X button or backdrop click)
+            const handleHidden = () => {
+                document.body.classList.remove('confirm-active');
+                window.removeEventListener('keydown', handleKeydown, true);
+                modalEl.removeEventListener('hidden.bs.modal', handleHidden);
+                resolve({ confirmed: false, checked: false });
             };
             modalEl.addEventListener('hidden.bs.modal', handleHidden);
 
+            document.body.classList.add('confirm-active');
             modal.show();
         });
     },

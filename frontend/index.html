@@ -32,22 +32,22 @@
                 <ul class="navbar-nav me-auto align-items-center">
                     <li class="nav-item">
                         <a class="nav-link active d-flex align-items-center" href="#" data-view="folders">
-                            <i class="bi bi-folder me-2"></i>Folders
+                            <i class="bi bi-folder me-2"></i><span data-i18n="nav_folders">Folders</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link d-flex align-items-center" href="#" data-view="datasets">
-                            <i class="bi bi-collection me-2"></i>Datasets
+                            <i class="bi bi-collection me-2"></i><span data-i18n="nav_datasets">Datasets</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link d-flex align-items-center" href="#" data-view="jobs">
-                            <i class="bi bi-cpu me-2"></i>Jobs
+                            <i class="bi bi-cpu me-2"></i><span data-i18n="nav_jobs">Jobs</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link d-flex align-items-center" href="#" data-view="exports">
-                            <i class="bi bi-box-arrow-up-right me-2"></i>Exports
+                            <i class="bi bi-box-arrow-up-right me-2"></i><span data-i18n="nav_exports">Exports</span>
                         </a>
                     </li>
                 </ul>
@@ -74,14 +74,27 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link text-warning d-flex align-items-center" href="#" id="trashBtn"
+                            title="Trash Bin">
+                            <i class="bi bi-trash fs-5"></i>
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link d-flex align-items-center" href="#" id="settingsBtn">
                             <i class="bi bi-gear fs-5"></i>
                         </a>
                     </li>
                     <li class="nav-item">
                         <span class="nav-link text-muted d-flex align-items-center" id="connectionStatus">
-                            <i class="bi bi-circle-fill text-danger me-2" style="font-size: 0.75rem;"></i>Disconnected
+                            <i class="bi bi-circle-fill text-danger me-2" style="font-size: 0.75rem;"></i><span
+                                data-i18n="nav_status_disconnected">Disconnected</span>
                         </span>
+                    </li>
+                    <li class="nav-item ms-2">
+                        <button class="btn btn-sm btn-outline-secondary d-flex align-items-center" id="langToggleBtn"
+                            onclick="i18n.toggleLanguage()" title="Switch Language">
+                            🇷🇺 RU
+                        </button>
                     </li>
                 </ul>
             </div>
@@ -92,22 +105,18 @@
     <div class="container-fluid py-3">
         <!-- View: Folders -->
         <div id="view-folders" class="view-container">
-            <div class="row">
+            <div class="row g-3">
                 <div class="col-md-4 col-lg-3">
                     <!-- Folder List Panel -->
                     <div class="card bg-dark border-secondary position-relative">
                         <div class="card-header d-flex justify-content-between align-items-center">
-                            <span><i class="bi bi-folder me-2"></i>Tracked Folders</span>
+                            <span><i class="bi bi-folder me-2"></i><span data-i18n="folders_title">Tracked
+                                    Folders</span></span>
                             <button class="btn btn-sm btn-primary" id="addFolderBtn">
                                 <i class="bi bi-plus-lg"></i>
                             </button>
                         </div>
                         <div class="card-body p-0 position-relative">
-                            <!-- Drop Zone Overlay -->
-                            <div id="folderDropZone" class="drop-zone">
-                                <i class="bi bi-folder-plus display-4"></i>
-                                <div>Drop folder here</div>
-                            </div>
                             <div class="list-group list-group-flush" id="folderList">
                                 <!-- Folders loaded dynamically -->
                                 <div class="text-center text-muted py-4">
@@ -120,6 +129,7 @@
                             </div>
                         </div>
                     </div>
+
                 </div>
 
                 <div class="col-md-8 col-lg-9">
@@ -135,7 +145,10 @@
                                     <i class="bi bi-check2-all"></i> Select All
                                 </button>
                                 <button class="btn btn-sm btn-outline-primary" id="addToDatasetBtn" disabled>
-                                    <i class="bi bi-plus"></i> Add to Dataset
+                                    <i class="bi bi-plus-lg"></i> Datasets
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" id="deleteSelectedBtn" disabled>
+                                    <i class="bi bi-trash"></i> Delete
                                 </button>
                             </div>
                         </div>
@@ -175,146 +188,151 @@
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- View: Datasets -->
-        <div id="view-datasets" class="view-container" style="display: none;">
-            <div class="row">
-                <div class="col-md-4 col-lg-3">
-                    <!-- Dataset List Panel -->
-                    <div class="card bg-dark border-secondary position-relative">
+    <!-- View: Datasets -->
+    <div id="view-datasets" class="view-container" style="display: none;">
+        <div class="row">
+            <div class="col-md-4 col-lg-3">
+                <!-- Dataset List Panel -->
+                <div class="card bg-dark border-secondary position-relative">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-collection me-2"></i><span
+                                data-i18n="datasets_title">Datasets</span></span>
+                        <button class="btn btn-sm btn-primary" id="createDatasetBtn">
+                            <i class="bi bi-plus-lg"></i>
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="list-group list-group-flush" id="datasetList">
+                            <!-- Datasets loaded dynamically -->
+                            <div class="text-center text-muted py-4">
+                                <i class="bi bi-collection display-6 d-block mb-2"></i>
+                                <small>No datasets created yet</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-8 col-lg-9">
+                <!-- Dataset Detail Panel -->
+                <div id="datasetDetailPanel">
+                    <div class="card bg-dark border-secondary mb-3">
                         <div class="card-header d-flex justify-content-between align-items-center">
-                            <span><i class="bi bi-collection me-2"></i>Datasets</span>
-                            <button class="btn btn-sm btn-primary" id="createDatasetBtn">
-                                <i class="bi bi-plus-lg"></i>
+                            <div>
+                                <span id="datasetTitle"><i class="bi bi-collection me-2"></i>Select a dataset</span>
+                                <span class="badge bg-secondary ms-2" id="datasetFileCount"></span>
+                            </div>
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-outline-secondary" id="editDatasetBtn" disabled>
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-info" id="cloneDatasetBtn" disabled
+                                    title="Clone dataset">
+                                    <i class="bi bi-files"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-success" id="exportDatasetBtn" disabled>
+                                    <i class="bi bi-box-arrow-up-right"></i> Export
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body" id="datasetStats">
+                            <div class="text-center text-muted py-3">
+                                Select a dataset to view details
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Caption Sets -->
+                    <div class="card bg-dark border-secondary mb-3">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-chat-quote me-2"></i><span data-i18n="datasets_caption_sets">Caption
+                                    Sets</span></span>
+                            <button class="btn btn-sm btn-primary" id="createCaptionSetBtn" disabled>
+                                <i class="bi bi-plus-lg"></i> <span data-i18n="datasets_add_caption_set">New
+                                    Set</span>
                             </button>
                         </div>
                         <div class="card-body p-0">
-                            <div class="list-group list-group-flush" id="datasetList">
-                                <!-- Datasets loaded dynamically -->
-                                <div class="text-center text-muted py-4">
-                                    <i class="bi bi-collection display-6 d-block mb-2"></i>
-                                    <small>No datasets created yet</small>
+                            <div class="list-group list-group-flush" id="captionSetList">
+                                <div class="text-center text-muted py-3">
+                                    <small>No caption sets yet</small>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="col-md-8 col-lg-9">
-                    <!-- Dataset Detail Panel -->
-                    <div id="datasetDetailPanel">
-                        <div class="card bg-dark border-secondary mb-3">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <div>
-                                    <span id="datasetTitle"><i class="bi bi-collection me-2"></i>Select a dataset</span>
-                                    <span class="badge bg-secondary ms-2" id="datasetFileCount"></span>
-                                </div>
-                                <div class="btn-group">
-                                    <button class="btn btn-sm btn-outline-secondary" id="editDatasetBtn" disabled>
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-info" id="cloneDatasetBtn" disabled
-                                        title="Clone dataset">
-                                        <i class="bi bi-files"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-success" id="exportDatasetBtn" disabled>
-                                        <i class="bi bi-box-arrow-up-right"></i> Export
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="card-body" id="datasetStats">
-                                <div class="text-center text-muted py-3">
-                                    Select a dataset to view details
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Caption Sets -->
-                        <div class="card bg-dark border-secondary mb-3">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <span><i class="bi bi-chat-quote me-2"></i>Caption Sets</span>
-                                <button class="btn btn-sm btn-primary" id="createCaptionSetBtn" disabled>
-                                    <i class="bi bi-plus-lg"></i> New Set
+                    <!-- Dataset Images -->
+                    <div class="card bg-dark border-secondary position-relative">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-images me-2"></i><span data-i18n="folders_images">Dataset
+                                    Images</span></span>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-info" id="addFromFolderBtn" disabled
+                                    title="Add images from tracked folder">
+                                    <i class="bi bi-folder-plus"></i> Add from Folder
                                 </button>
                             </div>
-                            <div class="card-body p-0">
-                                <div class="list-group list-group-flush" id="captionSetList">
-                                    <div class="text-center text-muted py-3">
-                                        <small>No caption sets yet</small>
-                                    </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="image-grid" id="datasetImageGrid">
+                                <div class="text-center text-muted py-4">
+                                    Select a dataset to view images
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Dataset Images -->
-                        <div class="card bg-dark border-secondary position-relative">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <span><i class="bi bi-images me-2"></i>Dataset Images</span>
-                                <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-outline-info" id="addFromFolderBtn" disabled
-                                        title="Add images from tracked folder">
-                                        <i class="bi bi-folder-plus"></i> Add from Folder
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="card-body">
-                                <div class="image-grid" id="datasetImageGrid">
-                                    <div class="text-center text-muted py-4">
-                                        Select a dataset to view images
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- Drop zone for adding images -->
-                            <div class="drop-zone" id="datasetImageDropZone">
-                                <i class="bi bi-images display-4"></i>
-                                <div>Drop images here to add to dataset</div>
-                                <small class="text-muted">or drag from the Folders view</small>
-                            </div>
+                        <!-- Drop zone for adding images -->
+                        <div class="drop-zone" id="datasetImageDropZone">
+                            <i class="bi bi-images display-4"></i>
+                            <div>Drop images here to add to dataset</div>
+                            <small class="text-muted">or drag from the Folders view</small>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- View: Jobs -->
-        <div id="view-jobs" class="view-container" style="display: none;">
-            <div class="card bg-dark border-secondary">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-cpu me-2"></i>Caption Generation Jobs</span>
-                    <button class="btn btn-sm btn-outline-secondary" id="refreshJobsBtn">
-                        <i class="bi bi-arrow-clockwise"></i> Refresh
-                    </button>
-                </div>
-                <div class="card-body">
-                    <div id="jobsList">
-                        <!-- Jobs loaded dynamically -->
-                        <div class="text-center text-muted py-5">
-                            <i class="bi bi-clock-history display-4 d-block mb-3"></i>
-                            <p>No caption jobs yet</p>
-                            <small>Start auto-captioning from a dataset's caption set</small>
-                        </div>
+    <!-- View: Jobs -->
+    <div id="view-jobs" class="view-container" style="display: none;">
+        <div class="card bg-dark border-secondary">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-cpu me-2"></i><span data-i18n="nav_jobs">Caption Generation Jobs</span></span>
+                <button class="btn btn-sm btn-outline-secondary" id="refreshJobsBtn">
+                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="jobsList">
+                    <!-- Jobs loaded dynamically -->
+                    <div class="text-center text-muted py-5">
+                        <i class="bi bi-clock-history display-4 d-block mb-3"></i>
+                        <p>No caption jobs yet</p>
+                        <small>Start auto-captioning from a dataset's caption set</small>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- View: Exports -->
-        <div id="view-exports" class="view-container" style="display: none;">
-            <div class="card bg-dark border-secondary">
-                <div class="card-header">
-                    <i class="bi bi-box-arrow-up-right me-2"></i>Export History
-                </div>
-                <div class="card-body">
-                    <div id="exportHistory">
-                        <!-- Exports loaded dynamically -->
-                        <div class="text-center text-muted py-5">
-                            <i class="bi bi-archive display-4 d-block mb-3"></i>
-                            <p>No exports yet</p>
-                        </div>
+    <!-- View: Exports -->
+    <div id="view-exports" class="view-container" style="display: none;">
+        <div class="card bg-dark border-secondary">
+            <div class="card-header">
+                <i class="bi bi-box-arrow-up-right me-2"></i><span data-i18n="nav_exports">Export History</span>
+            </div>
+            <div class="card-body">
+                <div id="exportHistory">
+                    <!-- Exports loaded dynamically -->
+                    <div class="text-center text-muted py-5">
+                        <i class="bi bi-archive display-4 d-block mb-3"></i>
+                        <p>No exports yet</p>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
     </div>
 
     <!-- Modal: Edit Folder -->
@@ -362,44 +380,50 @@
         <div class="modal-dialog">
             <div class="modal-content bg-dark border-secondary">
                 <div class="modal-header border-secondary">
-                    <h5 class="modal-title"><i class="bi bi-folder-plus me-2"></i>Add Folder</h5>
+                    <h5 class="modal-title"><i class="bi bi-folder-plus me-2"></i><span
+                            data-i18n="modal_add_folder_title">Add Folder</span></h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <form id="addFolderForm">
                         <div class="mb-3">
-                            <label class="form-label">Folder Path</label>
+                            <label class="form-label" data-i18n="modal_add_folder_path_label">Folder Path</label>
                             <div class="input-group">
                                 <input type="text" class="form-control" id="folderPath" placeholder="C:\path\to\images"
-                                    required>
+                                    data-i18n-placeholder="modal_add_folder_path_placeholder" required>
                                 <button class="btn btn-outline-secondary" type="button" id="browsePathBtn"
-                                    title="Browse for folder">
+                                    title="Browse for folder" data-i18n-title="modal_add_folder_browse_title">
                                     <i class="bi bi-folder2-open"></i>
                                 </button>
                                 <button class="btn btn-outline-secondary" type="button" id="pastePathBtn"
-                                    title="Paste from clipboard">
+                                    title="Paste from clipboard" data-i18n-title="modal_add_folder_paste_title">
                                     <i class="bi bi-clipboard"></i>
                                 </button>
                             </div>
                             <div class="form-text" id="pathHelpText">
                                 <i class="bi bi-info-circle me-1"></i>
-                                Click <i class="bi bi-folder2-open"></i> to browse, or paste a path manually
+                                <span data-i18n="modal_add_folder_help">Click <i class="bi bi-folder2-open"></i> to
+                                    browse, or paste a path manually</span>
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Display Name (optional)</label>
-                            <input type="text" class="form-control" id="folderName" placeholder="My Training Images">
+                            <label class="form-label" data-i18n="modal_add_folder_name_label">Display Name
+                                (optional)</label>
+                            <input type="text" class="form-control" id="folderName" placeholder="My Training Images"
+                                data-i18n-placeholder="modal_add_folder_name_placeholder">
                         </div>
                         <div class="form-check mb-3">
                             <input type="checkbox" class="form-check-input" id="scanRecursively" checked>
-                            <label class="form-check-label" for="scanRecursively">Scan subfolders recursively</label>
+                            <label class="form-check-label" for="scanRecursively"
+                                data-i18n="modal_add_folder_scan_recursive">Scan subfolders recursively</label>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer border-secondary">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                        data-i18n="modal_cancel">Cancel</button>
                     <button type="button" class="btn btn-primary" id="confirmAddFolder">
-                        <i class="bi bi-plus-lg me-1"></i>Add Folder
+                        <i class="bi bi-plus-lg me-1"></i><span data-i18n="modal_add_folder_btn">Add Folder</span>
                     </button>
                 </div>
             </div>
@@ -578,10 +602,15 @@
                         <div class="mb-3">
                             <label class="form-label">Prompt Template</label>
                             <select class="form-select" id="captionSetTemplate">
-                                <option value="detailed_p">🖼️ Detailed Description (Currated)</option>
-                                <option value="ultra">🖼️ Ultra Detailed Description (Currated)</option>
-                                <option value="cinematic">🎬 Cinematic Description (Currated)</option>
-                                <option value="custom">Custom (write your own prompt)</option>
+                                <option value="detailed_p" data-i18n="template_detailed">🖼️ Detailed Description
+                                    (Curated)</option>
+                                <option value="ultra" data-i18n="template_ultra">🖼️ Ultra Detailed Description
+                                    (Curated)</option>
+                                <option value="cinematic" data-i18n="template_cinematic">🎬 Cinematic Description
+                                    (Curated)</option>
+                                <option value="tags" data-i18n="template_tags">🏷️ Tags (Danbooru)</option>
+                                <option value="custom" data-i18n="template_custom">Custom (write your own prompt)
+                                </option>
                             </select>
                         </div>
                         <div class="mb-3" id="customPromptGroup" style="display: none;">
@@ -650,10 +679,15 @@
                         <div class="mb-3">
                             <label class="form-label">Prompt Template</label>
                             <select class="form-select" id="editCaptionSetTemplate">
-                                <option value="detailed_p">🖼️ Detailed Description (Currated)</option>
-                                <option value="ultra">🖼️ Ultra Detailed Description (Currated)</option>
-                                <option value="cinematic">🎬 Cinematic Description (Currated)</option>
-                                <option value="custom">Custom (write your own prompt)</option>
+                                <option value="detailed_p" data-i18n="template_detailed">🖼️ Detailed Description
+                                    (Curated)</option>
+                                <option value="ultra" data-i18n="template_ultra">🖼️ Ultra Detailed Description
+                                    (Curated)</option>
+                                <option value="cinematic" data-i18n="template_cinematic">🎬 Cinematic Description
+                                    (Curated)</option>
+                                <option value="tags" data-i18n="template_tags">🏷️ Tags (Danbooru)</option>
+                                <option value="custom" data-i18n="template_custom">Custom (write your own prompt)
+                                </option>
                             </select>
                         </div>
                         <div class="mb-3" id="editCustomPromptGroup" style="display: none;">
@@ -986,14 +1020,22 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer border-secondary">
-                    <button class="btn btn-outline-secondary" id="datasetCaptionPrevBtn">
-                        <i class="bi bi-chevron-left me-1"></i>Previous
-                    </button>
-                    <span class="text-muted mx-3" id="datasetCaptionIndex">1 / 1</span>
-                    <button class="btn btn-outline-secondary" id="datasetCaptionNextBtn">
-                        Next<i class="bi bi-chevron-right ms-1"></i>
-                    </button>
+                <div class="modal-footer border-secondary justify-content-between">
+                    <div>
+                        <button class="btn btn-outline-danger" id="datasetCaptionDeleteBtn"
+                            title="Remove image from dataset">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                    <div>
+                        <button class="btn btn-outline-secondary" id="datasetCaptionPrevBtn">
+                            <i class="bi bi-chevron-left me-1"></i>Previous
+                        </button>
+                        <span class="text-muted mx-3" id="datasetCaptionIndex">1 / 1</span>
+                        <button class="btn btn-outline-secondary" id="datasetCaptionNextBtn">
+                            Next<i class="bi bi-chevron-right ms-1"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1175,6 +1217,12 @@
                                             =
                                             000001.jpg).</div>
                                     </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label text-light">Trash Size</label>
+                                        <input type="number" class="form-control bg-dark text-light border-secondary"
+                                            id="settings_trash_size" min="10" max="1000" placeholder="100">
+                                        <div class="form-text text-secondary">Max files in trash.</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1209,15 +1257,20 @@
     </div>
 
     <!-- Modal: Confirmation Dialog -->
-    <div class="modal fade" id="confirmModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal fade" id="confirmModal" tabindex="-1" data-bs-backdrop="static" style="z-index: 3100;">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content bg-dark border-secondary">
                 <div class="modal-header border-secondary">
                     <h5 class="modal-title" id="confirmModalTitle">Confirm</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body" id="confirmModalBody">
-                    Are you sure?
+                <div class="modal-body">
+                    <div id="confirmModalBody">Are you sure?</div>
+                    <div class="form-check mt-3" id="confirmModalCheckboxContainer" style="display: none;">
+                        <input class="form-check-input" type="checkbox" id="confirmModalCheckbox">
+                        <label class="form-check-label text-light" for="confirmModalCheckbox"
+                            id="confirmModalCheckboxLabel"></label>
+                    </div>
                 </div>
                 <div class="modal-footer border-secondary">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
@@ -1234,11 +1287,11 @@
 
     <!-- Fullscreen Image Overlay -->
     <div id="fullscreenOverlay" class="d-none"
-        style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); z-index: 9999; cursor: pointer; display: flex; align-items: center; justify-content: center;"
-        onclick="Datasets.toggleFullscreen()">
+        style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); z-index: 3000; cursor: pointer; display: flex; align-items: center; justify-content: center;"
+        onclick="App.toggleFullscreen()">
         <img id="fullscreenImage" style="max-width: 95vw; max-height: 95vh; object-fit: contain;">
         <button class="btn btn-dark position-absolute top-0 end-0 m-3"
-            onclick="event.stopPropagation(); Datasets.toggleFullscreen();">
+            onclick="event.stopPropagation(); App.toggleFullscreen();">
             <i class="bi bi-x-lg"></i>
         </button>
         <div class="position-absolute bottom-0 start-50 translate-middle-x mb-3 text-white-50 small">
@@ -1385,11 +1438,69 @@
         </div>
     </div>
 
+    <!-- Modal: Trash Bin -->
+    <div class="modal fade" id="trashModal" tabindex="-1" data-bs-backdrop="static" style="z-index: 3150;">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content bg-dark border-secondary">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title text-warning"><i class="bi bi-trash me-2"></i><span
+                            data-i18n="trash_title">Trash Bin</span> <span id="trash-count"
+                            class="badge bg-secondary ms-2">0</span></h5>
+                    <div class="ms-auto">
+                        <button type="button" class="btn btn-outline-success me-2" id="trashRestoreAllBtn">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i><span data-i18n="trash_restore_all">Restore
+                                All</span>
+                        </button>
+                        <button type="button" class="btn btn-outline-danger me-3" id="trashEmptyBtn">
+                            <i class="bi bi-trash-fill me-1"></i><span data-i18n="trash_empty_btn">Empty Trash</span>
+                        </button>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                </div>
+                <div class="modal-body bg-dark">
+                    <!-- Toolbar -->
+                    <div class="d-flex justify-content-between mb-3">
+                        <div class="btn-group">
+                            <button class="btn btn-outline-secondary btn-sm" id="trashSelectAllBtn"
+                                data-i18n="trash_select_all">Select All</button>
+                            <button class="btn btn-outline-secondary btn-sm" id="trashDeselectAllBtn"
+                                data-i18n="trash_deselect_all">Deselect All</button>
+                        </div>
+                    </div>
+
+                    <div id="trashGrid"
+                        class="border border-secondary rounded p-3 d-flex flex-wrap align-items-start align-content-start"
+                        style="height: 500px; overflow-y: auto;">
+                        <!-- Trash items -->
+                    </div>
+
+                    <div class="mt-2 text-muted small">
+                        <i class="bi bi-info-circle me-1"></i><span data-i18n="trash_auto_remove_hint">Oldest files are
+                            automatically removed when limit is reached.</span>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-success" id="trashRestoreSelectedBtn" disabled>
+                        <i class="bi bi-arrow-counterclockwise me-1"></i><span
+                            data-i18n="trash_restore_selected">Restore Selected</span>
+                    </button>
+                    <button type="button" class="btn btn-danger" id="trashDeleteSelectedBtn" disabled>
+                        <i class="bi bi-x-lg me-1"></i><span data-i18n="trash_delete_selected">Delete Selected</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                        data-i18n="modal_cancel">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap 5.3 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <!-- Application Scripts -->
     <script src="js/utils.js"></script>
+    <script src="js/translations.js"></script>
+    <script src="js/i18n.js"></script>
     <script src="js/api.js"></script>
     <script src="js/folders.js"></script>
     <script src="js/datasets.js"></script>

@@ -89,6 +89,26 @@ class TrackedFile(Base):
         UniqueConstraint("folder_id", "relative_path", name="uq_folder_path"),
     )
 
+    @property
+    def primary_caption(self):
+        """Return the best available caption (imported or from DB)."""
+        if self.imported_caption:
+            return self.imported_caption
+        
+        # Check for DB captions (this might trigger lazy load)
+        if self.captions:
+            # Return the most recently created caption
+            # Sort by created_date desc
+            sorted_captions = sorted(self.captions, key=lambda c: c.created_date, reverse=True)
+            return sorted_captions[0].text
+        
+        return None
+
+    @property
+    def has_caption(self):
+        """Check if file has any caption."""
+        return bool(self.imported_caption) or (bool(self.captions) if self.captions else False)
+
 
 class Dataset(Base):
     """Virtual collections of images for training."""

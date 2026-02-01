@@ -81,6 +81,19 @@ def update_file_caption(
     
     file.imported_caption = update.text if update.text else None
     file.has_caption = bool(update.text)
+    
+    # Update the .txt file on disk
+    try:
+        txt_path = Path(file.absolute_path).with_suffix('.txt')
+        if update.text:
+            txt_path.write_text(update.text, encoding='utf-8')
+        else:
+            if txt_path.exists():
+                txt_path.unlink()
+    except Exception as e:
+        # Log error but don't fail the request completely
+        print(f"Failed to update caption file for {file.filename}: {e}")
+        
     db.commit()
     
     return {"success": True, "message": "Caption updated"}
@@ -145,3 +158,17 @@ def serve_thumbnail(file_id: str, db: Session = Depends(get_db)):
         path=thumbnail_path,
         media_type=media_type
     )
+
+
+@router.delete("/{file_id}")
+def delete_file(file_id: str, db: Session = Depends(get_db)):
+    """Delete a file and its associated resources."""
+    from ..services.folder_service import FolderService
+    
+    service = FolderService(db)
+    success = service.delete_file(file_id)
+    
+    if not success:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+    
+    return {"success": True, "message": "File deleted"}

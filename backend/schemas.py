@@ -70,19 +70,16 @@ class FileResponse(BaseModel):
     exists: bool
     thumbnail_path: Optional[str]
     imported_caption: Optional[str]
-    has_caption: bool = False  # Computed field indicating whether there's a caption
+    
+    # aggregated fields from model properties
+    primary_caption: Optional[str] = None 
+    has_caption: bool = False
+
     file_modified: Optional[datetime]
     discovered_date: datetime
     
     class Config:
         from_attributes = True
-    
-    @model_validator(mode='after')
-    def compute_has_caption(self):
-        """Compute has_caption based on imported_caption."""
-        if not self.has_caption and self.imported_caption:
-            self.has_caption = True
-        return self
 
 
 class FileListResponse(BaseModel):

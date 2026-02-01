@@ -15,6 +15,11 @@ const Folders = {
     currentFilter: 'all',
     allFilesSelected: false,  // Track if "select all" was clicked
     lastSelectedFileId: null, // Anchor for range selection (Shift+Click)
+    currentDetailFileId: null, // ID of file currently shown in details modal
+
+    // Trash Bin State
+    trashBin: [],
+    trashLimit: 100,
 
     /**
      * Check if running in Electron desktop mode
@@ -27,6 +32,7 @@ const Folders = {
      * Initialize the folders module
      */
     init() {
+        this.loadTrash();
         this.bindEvents();
         this.initDragAndDrop();
     },
@@ -35,9 +41,6 @@ const Folders = {
      * Initialize drag-and-drop support
      */
     initDragAndDrop() {
-        const dropZone = document.getElementById('folderDropZone');
-        const folderList = document.getElementById('folderList');
-
         // Prevent default drag behaviors on the whole document
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
             document.body.addEventListener(eventName, (e) => {
@@ -46,24 +49,9 @@ const Folders = {
             }, false);
         });
 
-        // Highlight drop zone when dragging over folder list area
-        ['dragenter', 'dragover'].forEach(eventName => {
-            folderList.addEventListener(eventName, () => {
-                dropZone.classList.add('drag-over');
-                dropZone.style.display = 'flex';
-            }, false);
-        });
-
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, () => {
-                dropZone.classList.remove('drag-over');
-                dropZone.style.display = 'none';
-            }, false);
-        });
-
-        // Handle drop - in Electron, File objects have a .path property!
-        dropZone.addEventListener('drop', async (e) => {
-            Utils.log('info', 'folders', 'Folder drop event triggered', { isDesktopMode: this.isDesktopMode() });
+        // Handle global drop - check if it's over the sidebar or main area
+        document.body.addEventListener('drop', async (e) => {
+            Utils.log('info', 'folders', 'Global drop event triggered', { isDesktopMode: this.isDesktopMode() });
 
             const files = e.dataTransfer.files;
             const items = e.dataTransfer.items;
@@ -108,7 +96,9 @@ const Folders = {
                 Utils.log('info', 'folders', `Dropped folder detected (no path): ${folderName}`);
                 this.showAddFolderModal(folderName);
             } else {
-                Utils.showToast('Please drop a folder, not individual files', 'warning');
+                // If it's just files, maybe they want to add to dataset?
+                // For now, if no folder is detected, show warning or ignore
+                Utils.showToast('Please drop a folder to track it', 'info');
             }
         }, false);
     },
@@ -250,6 +240,9 @@ const Folders = {
         // Add to dataset button
         document.getElementById('addToDatasetBtn').addEventListener('click', () => this.showAddToDatasetDialog());
 
+        // Delete selected button
+        document.getElementById('deleteSelectedBtn')?.addEventListener('click', () => this.deleteSelectedFiles());
+
         // Confirm add to dataset button (in modal)
         document.getElementById('confirmAddToDataset')?.addEventListener('click', () => this.confirmAddToDataset());
 
@@ -284,6 +277,14 @@ const Folders = {
         // Image detail modal - generate caption button
         document.getElementById('generateImageCaption')?.addEventListener('click', () => this.generateSingleCaption());
 
+        // Image detail modal - delete button
+        document.getElementById('imageDetailDeleteBtn')?.addEventListener('click', () => {
+            console.log('[Folders] Delete button clicked for file:', this.currentDetailFileId);
+            if (this.currentDetailFileId) {
+                this.deleteSingleFile(this.currentDetailFileId);
+            }
+        });
+
         // Caption character counter
         const captionEl = document.getElementById('imageDetailCaption');
         const charCountEl = document.getElementById('captionCharCount');
@@ -295,34 +296,6 @@ const Folders = {
         }
 
         // Keyboard navigation
-        document.addEventListener('keydown', (e) => {
-            // Only handle keyboard events when image detail modal is open
-            const modal = document.getElementById('imageDetailModal');
-            if (!modal || !modal.classList.contains('show')) return;
-
-            // Don't navigate if user is typing in a textarea or input
-            const activeElement = document.activeElement;
-            if (activeElement && (activeElement.tagName === 'TEXTAREA' || activeElement.tagName === 'INPUT')) {
-                return;
-            }
-
-            if (e.code === 'ArrowLeft') {
-                e.preventDefault();
-                this.navigatePrev();
-            } else if (e.code === 'ArrowRight') {
-                e.preventDefault();
-                this.navigateNext();
-            } else if (e.code === 'KeyF') {
-                e.preventDefault();
-                this.toggleFullscreen();
-            } else if (e.code === 'Escape') {
-                const fullscreenOverlay = document.getElementById('fullscreenOverlay');
-                if (fullscreenOverlay && !fullscreenOverlay.classList.contains('d-none')) {
-                    e.preventDefault();
-                    this.toggleFullscreen();
-                }
-            }
-        });
 
         // Deselect on grid background click
         document.getElementById('imageGrid').addEventListener('click', (e) => {
@@ -343,6 +316,36 @@ const Folders = {
                     this.updateSelectionUI();
                 }
             }
+        });
+
+        // Trash Bin Events
+        document.getElementById('trashRestoreAllBtn')?.addEventListener('click', () => {
+            if (confirm('Restore all files from trash?')) {
+                const allIds = this.trashBin.map(t => t.id);
+                this.restoreTrashItems(allIds);
+            }
+        });
+
+        document.getElementById('trashEmptyBtn')?.addEventListener('click', () => this.emptyTrash());
+
+        document.getElementById('trashSelectAllBtn')?.addEventListener('click', () => {
+            document.querySelectorAll('.trash-selector').forEach(cb => cb.checked = true);
+            this.updateTrashButtons();
+        });
+
+        document.getElementById('trashDeselectAllBtn')?.addEventListener('click', () => {
+            document.querySelectorAll('.trash-selector').forEach(cb => cb.checked = false);
+            this.updateTrashButtons();
+        });
+
+        document.getElementById('trashRestoreSelectedBtn')?.addEventListener('click', () => {
+            const ids = Array.from(document.querySelectorAll('.trash-selector:checked')).map(cb => cb.value);
+            this.restoreTrashItems(ids);
+        });
+
+        document.getElementById('trashDeleteSelectedBtn')?.addEventListener('click', () => {
+            const ids = Array.from(document.querySelectorAll('.trash-selector:checked')).map(cb => cb.value);
+            this.deleteTrashItems(ids);
         });
     },
 
@@ -373,22 +376,38 @@ const Folders = {
     },
 
     /**
-     * Toggle fullscreen image view
+     * Toggle fullscreen view
      */
-    toggleFullscreen() {
+    toggleFullscreen(imageSrc = null) {
         const overlay = document.getElementById('fullscreenOverlay');
-        if (!overlay) return;
+        const img = document.getElementById('fullscreenImage');
+
+        if (!overlay || !img) return;
+
+        // Force reset focus to avoid any hidden buttons keeping focus and intercepting keys
+        if (document.activeElement) {
+            document.activeElement.blur();
+        }
+        overlay.focus(); // Focus the overlay itself if possible, or body
 
         if (overlay.classList.contains('d-none')) {
-            overlay.classList.remove('d-none');
-            // Ensure image source is synced
-            const preview = document.getElementById('imageDetailPreview');
-            const fullscreen = document.getElementById('fullscreenImage');
-            if (preview && fullscreen) {
-                fullscreen.src = preview.src;
+            // Open fullscreen
+            if (imageSrc) {
+                img.src = imageSrc;
+            } else if (!img.src && this.currentDetailFileId) {
+                img.src = API.getImageUrl(this.currentDetailFileId);
             }
+            overlay.classList.remove('d-none');
+            document.body.classList.add('fullscreen-active');
+            overlay.focus();
         } else {
+            // Close fullscreen
             overlay.classList.add('d-none');
+            document.body.classList.remove('fullscreen-active');
+
+            // Restore focus to the modal to ensure Esc key works for it
+            const modalEl = document.getElementById('imageDetailModal');
+            if (modalEl) modalEl.focus();
         }
     },
 
@@ -403,7 +422,7 @@ const Folders = {
             const folders = await API.listFolders();
 
             if (folders.length === 0) {
-                list.innerHTML = Utils.emptyState('bi-folder2-open', 'No folders tracked yet', 'Click + to add a folder');
+                list.innerHTML = Utils.emptyState('bi-folder2-open', i18n.t('no_folders_tracked'), i18n.t('click_plus_to_add'));
                 return;
             }
 
@@ -465,8 +484,8 @@ const Folders = {
             });
 
         } catch (error) {
-            list.innerHTML = Utils.emptyState('bi-exclamation-triangle', 'Error loading folders', error.message);
-            Utils.showToast('Failed to load folders: ' + error.message, 'error');
+            list.innerHTML = Utils.emptyState('bi-exclamation-triangle', i18n.t('error_loading_folders'), error.message);
+            Utils.showToast(i18n.t('error_loading_folders') + ': ' + error.message, 'error');
         }
     },
 
@@ -479,7 +498,7 @@ const Folders = {
         const recursive = document.getElementById('scanRecursively').checked;
 
         if (!path) {
-            Utils.showToast('Please enter a folder path', 'warning');
+            Utils.showToast(i18n.t('please_enter_folder_path'), 'warning');
             return;
         }
 
@@ -489,7 +508,7 @@ const Folders = {
 
         try {
             const folder = await API.addFolder(path, name, recursive);
-            Utils.showToast(`Added folder: ${folder.name || path}`, 'success');
+            Utils.showToast(`${i18n.t('added_folder')}: ${folder.name || path}`, 'success');
 
             // Close modal and refresh
             bootstrap.Modal.getInstance(document.getElementById('addFolderModal')).hide();
@@ -499,10 +518,17 @@ const Folders = {
             this.selectFolder(folder.id);
 
         } catch (error) {
-            Utils.showToast('Failed to add folder: ' + error.message, 'error');
+            let errorMsg = error.message;
+            if (errorMsg.includes('Folder already tracked')) {
+                errorMsg = i18n.t('error_folder_exists');
+            } else {
+                errorMsg = i18n.t('failed_add_folder') + ': ' + errorMsg;
+            }
+            Utils.showToast(errorMsg, 'error');
         } finally {
             btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-plus-lg me-1"></i>Add Folder';
+            // Restore button with i18n span
+            btn.innerHTML = `<i class="bi bi-plus-lg me-1"></i><span data-i18n="modal_add_folder_btn">${i18n.t('modal_add_folder_btn')}</span>`;
         }
     },
 
@@ -840,20 +866,34 @@ const Folders = {
      */
     updateSelectionUI() {
         const count = this.selectedFiles.size;
+
+        // Add to Dataset Button
         const btn = document.getElementById('addToDatasetBtn');
+        if (btn) {
+            btn.disabled = count === 0;
+            // Only update text to include count if selection > 0
+            if (count > 0) {
+                btn.innerHTML = `<i class="bi bi-plus-lg"></i> Datasets`;
+            } else {
+                btn.innerHTML = `<i class="bi bi-plus-lg"></i> Datasets`;
+            }
+        }
+
+        // Delete Button
+        const deleteBtn = document.getElementById('deleteSelectedBtn');
+        if (deleteBtn) {
+            deleteBtn.disabled = count === 0;
+            // deleteBtn.innerHTML = `<i class="bi bi-trash"></i> Delete`; 
+        }
+
         const selectBtn = document.getElementById('selectAllBtn');
-
-        btn.disabled = count === 0;
-        btn.innerHTML = count > 0
-            ? `<i class="bi bi-plus"></i> Add ${count} to Dataset`
-            : '<i class="bi bi-plus"></i> Add to Dataset';
-
         // Update select all button text
-        const isAllSelected = this.allFilesSelected || this.selectedFiles.size === this.totalFiles;
+        const isAllSelected = this.allFilesSelected || (this.totalFiles > 0 && this.selectedFiles.size === this.totalFiles);
         selectBtn.innerHTML = isAllSelected
-            ? '<i class="bi bi-x-lg"></i> Deselect All'
-            : `<i class="bi bi-check2-all"></i> Select All${this.totalFiles > 0 ? ' (' + this.totalFiles + ')' : ''}`;
+            ? `<i class="bi bi-x-lg"></i> ${i18n.t('folders_clear_selection')}`
+            : `<i class="bi bi-check2-all"></i> ${i18n.t('folders_select_all')}${this.totalFiles > 0 ? ' (' + this.totalFiles + ')' : ''}`;
     },
+
 
     /**
      * Show add to dataset dialog
@@ -964,6 +1004,314 @@ const Folders = {
         } catch (error) {
             Utils.showToast('Failed to add files: ' + error.message, 'error');
         }
+    },
+
+    /**
+     * Delete selected files
+     */
+    async addFilesToDataset(datasetId, fileIds) {
+        // ... (existing code, not modifying this, just context anchor) ...
+    },
+
+    /**
+     * Soft delete files (Undoable)
+     */
+    // --- Trash Bin Management ---
+
+    loadTrash() {
+        const saved = localStorage.getItem('cf_trash_bin');
+        if (saved) {
+            try { this.trashBin = JSON.parse(saved); } catch (e) { console.error('Trash load error', e); this.trashBin = []; }
+        }
+        const limit = localStorage.getItem('cf_trash_limit');
+        if (limit) this.trashLimit = parseInt(limit);
+        this.updateTrashCount();
+    },
+
+    saveTrash() {
+        localStorage.setItem('cf_trash_bin', JSON.stringify(this.trashBin));
+        this.updateTrashCount();
+    },
+
+    updateTrashCount() {
+        const badge = document.getElementById('trash-count');
+        if (badge) badge.innerText = this.trashBin.length;
+    },
+
+    /**
+     * Soft delete files (Move to Trash)
+     */
+    async softDelete(fileIds, fromRedo = false) {
+        if (!fileIds || fileIds.length === 0) return;
+
+        const timestamp = Date.now();
+        let addedCount = 0;
+
+        fileIds.forEach(id => {
+            const file = this.files.find(f => f.id === id);
+            // If checking fromRedo or if file exists
+            if (!file && !fromRedo) return;
+
+            // Prevent duplicates
+            if (this.trashBin.find(t => t.id === id)) return;
+
+            // Construct trash item
+            const item = {
+                id: id,
+                url: file ? (file.thumbnail_url || file.url || API.getImageUrl(id)) : API.getImageUrl(id),
+                name: file ? file.name : 'Unknown',
+                timestamp
+            };
+
+            this.trashBin.push(item);
+            addedCount++;
+
+            // Remove from UI immediately
+            this.files = this.files.filter(f => f.id !== id);
+            const card = document.querySelector(`.image-card[data-file-id="${id}"]`);
+            if (card) card.remove();
+        });
+
+        if (addedCount > 0) {
+            this.saveTrash();
+            this.pruneTrash(); // Async
+            this.updateSelectionUI();
+
+            // Show toast with Undo action
+            // Show toast with Undo action
+            const msg = i18n.t('trash_moved').replace('{n}', addedCount);
+            Utils.showToast(msg, 'info');
+        }
+
+        this.selectedFiles.clear();
+        this.updateSelectionUI();
+    },
+
+    /**
+     * Commit deletion to backend
+     */
+    /**
+     * Enforce trash limit
+     */
+    async pruneTrash() {
+        let pruned = 0;
+        while (this.trashBin.length > this.trashLimit) {
+            const oldest = this.trashBin.shift(); // Remove oldest (index 0)
+            try {
+                await API.deleteFile(oldest.id);
+                console.log('[Trash] Pruned (Perm Delete):', oldest.id);
+                pruned++;
+            } catch (e) {
+                console.error('[Trash] Failed to prune:', oldest.id, e);
+            }
+        }
+        if (pruned > 0) this.saveTrash();
+    },
+
+    /**
+     * Undo Method: Restore most recent from Trash
+     */
+    async undoDelete() {
+        if (this.trashBin.length === 0) {
+            Utils.showToast(i18n.t('trash_undo_empty'), 'warning');
+            return;
+        }
+
+        // Pop the last item (LIFO for Undo)
+        const item = this.trashBin.pop();
+        this.saveTrash();
+
+        // Reload to restore state
+        await this.loadFiles();
+
+        Utils.showToast(i18n.t('trash_restored'), 'success');
+    },
+
+    /**
+     * Redo Method: Info only
+     */
+    redoDelete() {
+        Utils.showToast(i18n.t('trash_redo_hint'), 'info');
+    },
+
+    // --- Actions ---
+
+    openTrashModal() {
+        const modalEl = document.getElementById('trashModal');
+        const modal = new bootstrap.Modal(modalEl);
+        this.renderTrashGrid();
+        modal.show();
+    },
+
+    renderTrashGrid() {
+        const grid = document.getElementById('trashGrid');
+        grid.innerHTML = '';
+
+        if (this.trashBin.length === 0) {
+            grid.innerHTML = `
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-trash display-4 d-block mb-3 opacity-25"></i>
+                    <p>${i18n.t('trash_is_empty')}</p>
+                </div>`;
+            document.getElementById('trashEmptyBtn').disabled = true;
+            document.getElementById('trashRestoreAllBtn').disabled = true;
+            return;
+        }
+
+        document.getElementById('trashEmptyBtn').disabled = false;
+        document.getElementById('trashRestoreAllBtn').disabled = false;
+
+        this.trashBin.slice().reverse().forEach(item => { // Show newest first
+            const div = document.createElement('div');
+            div.className = 'card bg-secondary bg-opacity-10 border-secondary position-relative d-inline-block m-2';
+            div.style.width = '140px';
+            div.innerHTML = `
+                <img src="${item.url}" class="card-img-top" style="height: 140px; object-fit: cover; opacity: 0.7;">
+                <div class="card-body p-2 text-truncate small text-muted">
+                    ${item.name || item.id}
+                </div>
+                <div class="position-absolute top-0 start-0 m-1">
+                    <input type="checkbox" class="form-check-input trash-selector" value="${item.id}">
+                </div>
+            `;
+            // Click to toggle
+            div.onclick = (e) => {
+                if (e.target.tagName !== 'INPUT') {
+                    const cb = div.querySelector('input');
+                    cb.checked = !cb.checked;
+                }
+                this.updateTrashButtons();
+            };
+            grid.appendChild(div);
+        });
+
+        // Bind selectors
+        grid.querySelectorAll('.trash-selector').forEach(cb => {
+            cb.addEventListener('change', () => this.updateTrashButtons());
+        });
+        this.updateTrashButtons();
+    },
+
+    updateTrashButtons() {
+        const checked = document.querySelectorAll('.trash-selector:checked').length;
+        document.getElementById('trashRestoreSelectedBtn').disabled = checked === 0;
+        document.getElementById('trashDeleteSelectedBtn').disabled = checked === 0;
+        document.getElementById('trashRestoreSelectedBtn').innerHTML = `<i class="bi bi-arrow-counterclockwise me-1"></i> ${i18n.t('trash_restore_selected')} (${checked})`;
+    },
+
+    async emptyTrash() {
+        if (!confirm(i18n.t('trash_confirm_empty'))) return;
+
+        const count = this.trashBin.length;
+        Utils.showToast(i18n.t('js_processing'), 'info');
+
+        const modalInstance = bootstrap.Modal.getInstance(document.getElementById('trashModal'));
+
+        // Parallel or Serial? Serial safe.
+        for (const item of this.trashBin) {
+            try { await API.deleteFile(item.id); } catch (e) { }
+        }
+
+        this.trashBin = [];
+        this.saveTrash();
+        this.renderTrashGrid();
+        this.trashBin = [];
+        this.saveTrash();
+        this.renderTrashGrid();
+        Utils.showToast(i18n.t('delete_success'), 'success');
+    },
+
+    async restoreTrashItems(ids) {
+        if (!ids || ids.length === 0) return;
+
+        const modalEl = document.getElementById('trashModal');
+        // Filter out restored items from bin
+        this.trashBin = this.trashBin.filter(item => !ids.includes(item.id));
+        this.saveTrash();
+
+        // Refresh UI
+        this.renderTrashGrid();
+        await this.loadFiles(); // Refresh main view to see restored
+
+        const msg = i18n.t('trash_restored_count').replace('{n}', ids.length);
+        Utils.showToast(msg, 'success');
+    },
+
+    async deleteTrashItems(ids) {
+        if (!ids || ids.length === 0) return;
+
+        const message = i18n.t('trash_confirm_delete_selected').replace('{n}', ids.length);
+        if (!confirm(message)) return;
+
+        for (const id of ids) {
+            try { await API.deleteFile(id); } catch (e) { }
+        }
+
+        // Remove from bin
+        this.trashBin = this.trashBin.filter(item => !ids.includes(item.id));
+        this.saveTrash();
+        this.renderTrashGrid();
+    },
+
+    /**
+     * Delete selected files
+     */
+    async deleteSelectedFiles() {
+        const count = this.selectedFiles.size;
+        if (count === 0) return;
+
+        const suppressConfirm = localStorage.getItem('cf_suppress_delete_confirm') === 'true';
+
+        if (!suppressConfirm) {
+            const message = i18n.t('confirm_delete_msg').replace('{n}', count);
+            const { confirmed, checked } = await Utils.confirmWithCheckbox(
+                message,
+                i18n.t('confirm_delete_title'),
+                i18n.t('dont_ask_again')
+            );
+            if (!confirmed) return;
+            if (checked) {
+                localStorage.setItem('cf_suppress_delete_confirm', 'true');
+            }
+        }
+
+        // Proceed with Soft Delete (Undoable)
+        this.softDelete(Array.from(this.selectedFiles));
+    },
+
+    /**
+     * Delete a single file
+     */
+    async deleteSingleFile(fileId) {
+        if (!fileId) return;
+
+        // Check user strictness for confirmation
+        const suppressConfirm = localStorage.getItem('cf_suppress_delete_confirm') === 'true';
+
+        if (!suppressConfirm) {
+            const title = (typeof i18n !== 'undefined') ? i18n.t('confirm_delete_title') : 'Confirm Delete';
+            const checkboxLabel = (typeof i18n !== 'undefined') ? i18n.t('dont_ask_again') : "Don't ask again";
+
+            const { confirmed, checked } = await Utils.confirmWithCheckbox(
+                'Delete this file permanently?',
+                title,
+                checkboxLabel
+            );
+
+            if (!confirmed) return;
+
+            if (checked) {
+                localStorage.setItem('cf_suppress_delete_confirm', 'true');
+            }
+        }
+
+        // Close modal if open
+        const modalEl = document.getElementById('imageDetailModal');
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) modal.hide();
+
+        // Proceed with Soft Delete
+        this.softDelete([fileId]);
     },
 
     /**
