@@ -161,7 +161,3 @@ Apache 2.0 - См. файл [LICENSE](LICENSE).
 
 - [QUICKSTART.md](QUICKSTART.md) - Быстрый старт и инструкция
 - [API Documentation](http://localhost:8675/docs) - Документация API
-
-## Поддержать автора
-
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/C0C31T80OE)
