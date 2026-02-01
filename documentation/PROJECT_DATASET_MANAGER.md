@@ -1,6 +1,6 @@
-# CaptionFoundry - LORA Dataset Management System
+# RuCaptioner - LORA Dataset Management System
 
-**Project Name**: CaptionFoundry  
+**Project Name**: RuCaptioner  
 **Version**: 1.0  
 **Date**: January 28, 2026  
 **Status**: Active Development  
@@ -136,7 +136,7 @@ A standalone desktop application for managing image/video datasets used for trai
 ### Project Structure
 
 ```
-captionfoundry/
+rucaptioner/
 ├── electron/
 │   ├── main.js                    # Electron main process (spawns Python backend)
 │   └── preload.js                 # Context bridge for secure IPC
@@ -220,7 +220,7 @@ captionfoundry/
 
 **Pattern**: Based on Chorus Engine's Discord Bridge implementation - self-contained, portable Python venv.
 
-CaptionFoundry uses a **self-contained virtual environment** approach for maximum portability and ease of deployment:
+RuCaptioner uses a **self-contained virtual environment** approach for maximum portability and ease of deployment:
 
 - **Virtual environment in `.venv/`**: All Python dependencies installed locally
 - **Cross-platform scripts**: Batch files for Windows, shell scripts for Linux/macOS
@@ -234,11 +234,11 @@ CaptionFoundry uses a **self-contained virtual environment** approach for maximu
 
 ```batch
 @echo off
-REM CaptionFoundry - Windows Installation Script
+REM RuCaptioner - Windows Installation Script
 REM Creates a self-contained virtual environment for portability
 
 echo ============================================
-echo  CaptionFoundry - Installation (Windows)
+echo  RuCaptioner - Installation (Windows)
 echo ============================================
 echo.
 echo This application is PORTABLE - you can copy this folder
@@ -330,7 +330,7 @@ echo ============================================
 echo.
 echo Next steps:
 echo   1. Review config\settings.yaml
-echo   2. Run start.bat to launch CaptionFoundry
+echo   2. Run start.bat to launch RuCaptioner
 echo.
 pause
 ```
@@ -339,11 +339,11 @@ pause
 
 ```bash
 #!/bin/bash
-# CaptionFoundry - Linux/Mac Installation Script
+# RuCaptioner - Linux/Mac Installation Script
 # Creates a self-contained virtual environment for portability
 
 echo "============================================"
-echo " CaptionFoundry - Installation (Linux/Mac)"
+echo " RuCaptioner - Installation (Linux/Mac)"
 echo "============================================"
 echo ""
 echo "This application is PORTABLE - you can copy this folder"
@@ -425,13 +425,13 @@ echo "============================================"
 echo ""
 echo "Next steps:"
 echo "  1. Review config/settings.yaml"
-echo "  2. Run ./start.sh to launch CaptionFoundry"
+echo "  2. Run ./start.sh to launch RuCaptioner"
 echo ""
 ```
 
 ### Startup Scripts
 
-CaptionFoundry can be launched in two modes:
+RuCaptioner can be launched in two modes:
 
 1. **Desktop Mode** (`start_app.bat` / `start_app.sh`) - Recommended for most users
    - Opens as a native desktop application window
@@ -448,10 +448,10 @@ CaptionFoundry can be launched in two modes:
 ```batch
 @echo off
 setlocal enabledelayedexpansion
-REM CaptionFoundry - Windows Desktop Application Launcher
+REM RuCaptioner - Windows Desktop Application Launcher
 
 echo ============================================
-echo   CaptionFoundry - Desktop Application
+echo   RuCaptioner - Desktop Application
 echo ============================================
 echo.
 
@@ -472,7 +472,7 @@ if not exist "config\settings.yaml" (
     copy "config\settings.yaml.template" "config\settings.yaml" >nul
 )
 
-echo [INFO] Starting CaptionFoundry Desktop...
+echo [INFO] Starting RuCaptioner Desktop...
 echo.
 
 python app.py
@@ -483,10 +483,10 @@ pause
 
 ```batch
 @echo off
-REM CaptionFoundry - Windows Startup Script
+REM RuCaptioner - Windows Startup Script
 
 echo ============================================
-echo    CaptionFoundry - Starting Up
+echo    RuCaptioner - Starting Up
 echo ============================================
 echo.
 
@@ -522,7 +522,7 @@ echo [OK] Configuration found
 echo.
 
 REM Start backend server
-echo [INFO] Starting CaptionFoundry backend...
+echo [INFO] Starting RuCaptioner backend...
 echo       API: http://localhost:8000
 echo       Press Ctrl+C to stop
 echo.
@@ -534,10 +534,10 @@ echo.
 
 ```bash
 #!/bin/bash
-# CaptionFoundry - Linux/Mac Startup Script
+# RuCaptioner - Linux/Mac Startup Script
 
 echo "============================================"
-echo "   CaptionFoundry - Starting Up"
+echo "   RuCaptioner - Starting Up"
 echo "============================================"
 echo ""
 
@@ -578,7 +578,7 @@ echo "[OK] Configuration found"
 echo ""
 
 # Start backend server
-echo "[INFO] Starting CaptionFoundry backend..."
+echo "[INFO] Starting RuCaptioner backend..."
 echo "       API: http://localhost:8000"
 echo "       Press Ctrl+C to stop"
 echo ""
@@ -592,10 +592,10 @@ python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 
 ```batch
 @echo off
-REM CaptionFoundry - Windows Update Script
+REM RuCaptioner - Windows Update Script
 
 echo ============================================
-echo    CaptionFoundry - Update
+echo    RuCaptioner - Update
 echo ============================================
 echo.
 
@@ -626,7 +626,7 @@ echo ============================================
 echo  Update Complete!
 echo ============================================
 echo.
-echo Run start.bat to launch CaptionFoundry
+echo Run start.bat to launch RuCaptioner
 echo.
 pause
 ```
@@ -635,10 +635,10 @@ pause
 
 ```bash
 #!/bin/bash
-# CaptionFoundry - Linux/Mac Update Script
+# RuCaptioner - Linux/Mac Update Script
 
 echo "============================================"
-echo "   CaptionFoundry - Update"
+echo "   RuCaptioner - Update"
 echo "============================================"
 echo ""
 
@@ -668,7 +668,7 @@ echo "============================================"
 echo " Update Complete!"
 echo "============================================"
 echo ""
-echo "Run ./start.sh to launch CaptionFoundry"
+echo "Run ./start.sh to launch RuCaptioner"
 echo ""
 ```
 
@@ -712,7 +712,7 @@ echo ""
 
 ### Caption Data Model Architecture
 
-CaptionFoundry uses a **two-tier caption architecture** to separate source captions from working captions:
+RuCaptioner uses a **two-tier caption architecture** to separate source captions from working captions:
 
 #### Imported Captions (Read-Only Reference)
 - **Location**: `tracked_files.imported_caption`
@@ -782,7 +782,7 @@ CaptionFoundry uses a **two-tier caption architecture** to separate source capti
 
 ### Trigger Phrase / Caption Prefix Feature
 
-**Purpose**: LORA training often requires a consistent trigger word or phrase at the start of every caption to associate the trained concept. CaptionFoundry supports this natively via the "Trigger Phrase" field on caption sets.
+**Purpose**: LORA training often requires a consistent trigger word or phrase at the start of every caption to associate the trained concept. RuCaptioner supports this natively via the "Trigger Phrase" field on caption sets.
 
 #### How It Works
 
@@ -1137,7 +1137,7 @@ The vision system architecture is directly adapted from Chorus Engine's proven i
 
 ### Vision Model Configuration
 
-**Single Backend Support**: CaptionFoundry utilizes LM Studio as the vision model backend. Each model in the curated list includes proper names for LM Studio.
+**Single Backend Support**: RuCaptioner utilizes LM Studio as the vision model backend. Each model in the curated list includes proper names for LM Studio.
 
 **Default Backend**: LM Studio
 
@@ -1286,7 +1286,7 @@ async def pull_model(backend: str, pull_command: str) -> bool:
 
 ### Model Pulling UX (Adapted from Chorus Engine)
 
-CaptionFoundry implements a proven model pulling workflow adapted from Chorus Engine's Model Manager:
+RuCaptioner implements a proven model pulling workflow adapted from Chorus Engine's Model Manager:
 
 #### UI Flow
 
@@ -1371,7 +1371,7 @@ CaptionFoundry implements a proven model pulling workflow adapted from Chorus En
 
 **From Chorus Engine Character Editor**:
 - Two modes: "Select from Curated" (dropdown) or "Custom Model Name" (text input)
-- CaptionFoundry uses same pattern in Vision Settings:
+- RuCaptioner uses same pattern in Vision Settings:
 
 ```html
 <div class="model-selection">
@@ -1405,7 +1405,7 @@ CaptionFoundry implements a proven model pulling workflow adapted from Chorus En
 **Benefits of Custom Mode**:
 - Users can specify exact quantizations (e.g., `qwen3-vl:4b-q5_k_m`, `qwen/qwen3-vl-4b:Q8_0`)
 - Supports experimental or unreleased models
-- No need to update CaptionFoundry's curated list for every model variant
+- No need to update RuCaptioner's curated list for every model variant
 
 #### Database Tracking
 
@@ -2035,7 +2035,7 @@ Export dataset with processing options.
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────┐
-│  [CaptionFoundry]  [+ Folder]  [Settings]                        [@username]  │
+│  [RuCaptioner]  [+ Folder]  [Settings]                        [@username]  │
 ├─────────────────┬──────────────────────────────────┬───────────────────────┤
 │   DATASETS      │       IMAGE GRID                 │   CAPTION EDITOR      │
 │   (Left Panel)  │       (Center Panel)             │   (Right Panel)       │
@@ -2756,4 +2756,4 @@ server:
 
 **End of Document**
 
-This comprehensive planning document covers all aspects of the CaptionFoundry LORA Dataset Management System, from database design through implementation phases, providing a complete roadmap for development.
+This comprehensive planning document covers all aspects of the RuCaptioner LORA Dataset Management System, from database design through implementation phases, providing a complete roadmap for development.

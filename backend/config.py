@@ -1,4 +1,4 @@
-"""Configuration management for CaptionFoundry."""
+"""Configuration management for RuCaptioner."""
 
 import logging
 from pathlib import Path

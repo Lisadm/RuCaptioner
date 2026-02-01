@@ -2,7 +2,7 @@
 
 echo ""
 echo "========================================"
-echo "  CaptionFoundry - Starting Desktop App"
+echo "  RuCaptioner - Starting Desktop App"
 echo "========================================"
 echo ""
 
@@ -27,7 +27,7 @@ if [ ! -f "config/settings.yaml" ]; then
     cp "config/settings.yaml.template" "config/settings.yaml"
 fi
 
-echo "[INFO] Starting CaptionFoundry..."
+echo "[INFO] Starting RuCaptioner..."
 echo ""
 
 # Start the Electron app (which will spawn the Python backend)

@@ -1,5 +1,5 @@
 /**
- * CaptionFoundry Jobs Module
+ * RuCaptioner Jobs Module
  * Handles caption generation job management
  */
 

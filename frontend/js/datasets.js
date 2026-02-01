@@ -1,5 +1,5 @@
 /**
- * CaptionFoundry Datasets Module
+ * RuCaptioner Datasets Module
  * Handles dataset management and caption sets
  */
 

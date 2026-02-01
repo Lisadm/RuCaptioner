@@ -1,4 +1,4 @@
-"""Database configuration and session management for CaptionFoundry."""
+"""Database configuration and session management for RuCaptioner."""
 
 import logging
 from pathlib import Path

@@ -1,5 +1,5 @@
 /**
- * CaptionFoundry Exports Module
+ * RuCaptioner Exports Module
  * Handles export history and downloads
  */
 
@@ -11,28 +11,28 @@ const Exports = {
         // Note: Export modal is managed by Datasets module, no event listeners needed here
         Utils.initDroppablePaths();
     },
-    
+
     /**
      * Load and display export history
      */
     async loadExports() {
         const container = document.getElementById('exportHistory');
         container.innerHTML = Utils.loadingSpinner();
-        
+
         try {
             const exports = await API.getExportHistory(null, 50);
-            
+
             if (exports.length === 0) {
                 container.innerHTML = Utils.emptyState(
-                    'bi-archive', 
+                    'bi-archive',
                     'No exports yet',
                     'Export a dataset to create training-ready files'
                 );
                 return;
             }
-            
+
             container.innerHTML = exports.map(exp => this.renderExportItem(exp)).join('');
-            
+
             // Bind download buttons
             container.querySelectorAll('[data-export-id]').forEach(el => {
                 const downloadBtn = el.querySelector('.download-btn');
@@ -42,18 +42,18 @@ const Exports = {
                     });
                 }
             });
-            
+
         } catch (error) {
             container.innerHTML = Utils.emptyState('bi-exclamation-triangle', 'Error loading exports', error.message);
         }
     },
-    
+
     /**
      * Render an export item
      */
     renderExportItem(exp) {
         const statusBadge = this.getStatusBadge(exp.status);
-        
+
         return `
             <div class="export-item" data-export-id="${exp.id}">
                 <div>
@@ -85,7 +85,7 @@ const Exports = {
             </div>
         `;
     },
-    
+
     /**
      * Get status badge HTML
      */

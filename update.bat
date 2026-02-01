@@ -3,7 +3,7 @@ setlocal enabledelayedexpansion
 
 echo.
 echo ========================================
-echo   CaptionFoundry - Update
+echo   RuCaptioner - Update
 echo ========================================
 echo.
 
@@ -95,6 +95,6 @@ echo ========================================
 echo   Update Complete!
 echo ========================================
 echo.
-echo To start CaptionFoundry, run: start.bat
+echo To start RuCaptioner, run: start.bat
 echo.
 pause

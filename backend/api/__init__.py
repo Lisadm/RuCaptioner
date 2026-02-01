@@ -1,4 +1,4 @@
-"""API routers package for CaptionFoundry."""
+"""API routers package for RuCaptioner."""
 
 import time
 import logging

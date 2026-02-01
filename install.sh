@@ -2,7 +2,7 @@
 
 echo ""
 echo "========================================"
-echo "  CaptionFoundry - Installation"
+echo "  RuCaptioner - Installation"
 echo "========================================"
 echo ""
 
@@ -92,7 +92,7 @@ echo "========================================"
 echo "  Installation Complete!"
 echo "========================================"
 echo ""
-echo "To start CaptionFoundry, run: ./start.sh"
+echo "To start RuCaptioner, run: ./start.sh"
 echo ""
 echo "Configuration: config/settings.yaml"
 echo "Database: data/captionforge.db (created on first run)"

@@ -1,4 +1,4 @@
-"""SQLAlchemy ORM models for CaptionFoundry."""
+"""SQLAlchemy ORM models for RuCaptioner."""
 
 import uuid
 from datetime import datetime

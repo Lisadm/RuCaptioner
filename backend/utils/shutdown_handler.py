@@ -5,7 +5,7 @@ import sys
 import threading
 import logging
 
-logger = logging.getLogger("captionfoundry.utils.shutdown")
+logger = logging.getLogger("rucaptioner.utils.shutdown")
 
 def start_stdin_watchdog():
     """Starts a thread that monitors stdin for EOF (closed pipe).

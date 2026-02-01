@@ -1,6 +1,6 @@
 # Database Migrations
 
-This directory contains Alembic database migrations for CaptionFoundry.
+This directory contains Alembic database migrations for RuCaptioner.
 
 ## Automatic Migrations
 

@@ -1,5 +1,5 @@
 /**
- * CaptionFoundry Folders Module
+ * RuCaptioner Folders Module
  * Handles folder browsing and file selection with drag-and-drop support
  */
 

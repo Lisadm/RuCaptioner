@@ -1,5 +1,5 @@
 /**
- * CaptionFoundry - Electron Main Process
+ * RuCaptioner - Electron Main Process
  * 
  * Launches the Python FastAPI backend as a subprocess and creates
  * the Electron BrowserWindow to load the frontend.

@@ -1,5 +1,5 @@
 /**
- * CaptionFoundry Main Application
+ * RuCaptioner Main Application
  * Initializes modules and handles view navigation
  */
 
@@ -12,7 +12,7 @@ const App = {
      * Initialize the application
      */
     async init() {
-        console.log('CaptionFoundry initializing...');
+        console.log('RuCaptioner initializing...');
 
         // Initialize modules
         Folders.init();
@@ -42,7 +42,7 @@ const App = {
             this.showView(params.view);
         }
 
-        console.log('CaptionFoundry ready');
+        console.log('RuCaptioner ready');
     },
 
     /**

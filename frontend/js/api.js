@@ -1,5 +1,5 @@
 /**
- * CaptionFoundry API Client
+ * RuCaptioner API Client
  * Handles all HTTP communication with the backend
  */
 

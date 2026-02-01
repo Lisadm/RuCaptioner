@@ -1,4 +1,4 @@
-"""Services package for CaptionFoundry."""
+"""Services package for RuCaptioner."""
 
 from .folder_service import FolderService
 from .dataset_service import DatasetService

@@ -1,4 +1,4 @@
-# CaptionFoundry - Python Dependencies
+# RuCaptioner - Python Dependencies
 # LORA Dataset Management System
 
 # Web Framework

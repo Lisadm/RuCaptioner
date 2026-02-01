@@ -3,7 +3,7 @@ setlocal enabledelayedexpansion
 
 echo.
 echo ========================================
-echo   CaptionFoundry - Starting Desktop App
+echo   RuCaptioner - Starting Desktop App
 echo ========================================
 echo.
 
@@ -30,7 +30,7 @@ if not exist "config\settings.yaml" (
     copy "config\settings.yaml.template" "config\settings.yaml" >nul
 )
 
-echo [INFO] Starting CaptionFoundry...
+echo [INFO] Starting RuCaptioner...
 echo.
 
 :: Start the Electron app (which will spawn the Python backend)

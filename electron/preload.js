@@ -1,5 +1,5 @@
 /**
- * CaptionFoundry - Electron Preload Script
+ * RuCaptioner - Electron Preload Script
  * 
  * This script runs in the renderer process before the web page loads.
  * It safely exposes select Node.js/Electron APIs to the frontend
@@ -37,4 +37,4 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }
 });
 
-console.log('[Preload] CaptionFoundry Electron API exposed');
+console.log('[Preload] RuCaptioner Electron API exposed');

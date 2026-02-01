@@ -1,4 +1,4 @@
-"""CaptionFoundry FastAPI Application."""
+"""RuCaptioner FastAPI Application."""
 
 import sys
 import io
@@ -26,7 +26,7 @@ from .api import (
 )
 from . import __version__
 
-logger = get_logger("captionfoundry.main")
+logger = get_logger("rucaptioner.main")
 
 
 def check_logging_initialized():
@@ -77,7 +77,7 @@ async def lifespan(app: FastAPI):
     """Application lifespan handler."""
     # Startup
     check_logging_initialized()
-    logger.info(f"Starting CaptionFoundry v{__version__}")
+    logger.info(f"Starting RuCaptioner v{__version__}")
     
     # Ensure data directories exist
     settings = get_settings()
@@ -107,12 +107,12 @@ async def lifespan(app: FastAPI):
     
     # Shutdown
     close_db()
-    logger.info("CaptionFoundry shutdown complete")
+    logger.info("RuCaptioner shutdown complete")
 
 
 # Create FastAPI app
 app = FastAPI(
-    title="CaptionFoundry",
+    title="RuCaptioner",
     description="LORA Dataset Management System - Manage image datasets with AI-powered captioning",
     version=__version__,
     lifespan=lifespan,
@@ -132,7 +132,7 @@ app.add_middleware(
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """Log all unhandled exceptions to the debug log."""
-    error_logger = get_logger("captionfoundry.errors")
+    error_logger = get_logger("rucaptioner.errors")
     error_logger.error(f"Unhandled exception on {request.method} {request.url.path}")
     error_logger.error(f"Exception type: {type(exc).__name__}")
     error_logger.error(f"Exception message: {str(exc)}")
@@ -162,7 +162,7 @@ async def log_requests(request: Request, call_next):
         response.headers['Expires'] = '0'
     
     if path.startswith("/api"):
-        request_logger = get_logger("captionfoundry.api.requests")
+        request_logger = get_logger("rucaptioner.api.requests")
         start_time = time.time()
         
         # Log request (using ASCII-safe arrows)
@@ -195,7 +195,7 @@ if frontend_dir.exists():
 def api_root():
     """API root endpoint."""
     return {
-        "name": "CaptionFoundry API",
+        "name": "RuCaptioner API",
         "version": __version__,
         "docs_url": "/docs",
     }
