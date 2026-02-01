@@ -30,6 +30,36 @@ const BACKEND_PORT = 8765;
 const BACKEND_URL = `http://localhost:${BACKEND_PORT}`;
 const isDev = process.argv.includes('--dev');
 
+// ============================================================
+// Portable Mode Setup
+// ============================================================
+
+// Determine the project root directory
+// In Dev: Parent of 'electron' folder
+// In Prod: Directory containing the executable
+const projectRoot = app.isPackaged
+    ? path.dirname(app.getPath('exe'))
+    : path.dirname(__dirname);
+
+const localDataPath = path.join(projectRoot, 'data');
+const localElectronDataPath = path.join(localDataPath, 'electron_data');
+
+console.log(`[Electron] Project Root: ${projectRoot}`);
+
+try {
+    // Ensure the data directory exists
+    if (!fs.existsSync(localElectronDataPath)) {
+        fs.mkdirSync(localElectronDataPath, { recursive: true });
+    }
+
+    // Redirect Electron's User Data to the local folder
+    console.log(`[Electron] Setting portable user data path: ${localElectronDataPath}`);
+    app.setPath('userData', localElectronDataPath);
+} catch (err) {
+    console.error('[Electron] Failed to set portable data path:', err);
+    // Continue with default path if portable fails (fallback)
+}
+
 let mainWindow = null;
 let pythonProcess = null;
 
