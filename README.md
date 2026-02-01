@@ -135,10 +135,6 @@ RuCaptioner/
 npm run dev
 ```
 
-### Документация API
-
-После запуска приложения доступна интерактивная документация Swagger по адресу: `http://localhost:8675/docs`
-
 ## Решение проблем
 
 ### "No vision models available"
