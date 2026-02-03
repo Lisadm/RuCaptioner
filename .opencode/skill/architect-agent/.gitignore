@@ -1,8 +1,0 @@
-# Allow CLAUDE.md to be committed (override global gitignore)
-!CLAUDE.md
-
-# Standard skill workspace ignores
-*.swp
-*.swo
-*~
-.DS_Store
