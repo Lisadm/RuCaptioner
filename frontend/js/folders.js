@@ -742,7 +742,7 @@ const Folders = {
                     const dragImage = document.createElement('div');
                     dragImage.className = 'drag-image-preview';
                     dragImage.innerHTML = `<i class="bi bi-images"></i> ${dragIds.length} images`;
-                    dragImage.style.cssText = 'position:absolute;top:-1000px;padding:8px 12px;background:#0d6efd;color:white;border-radius:4px;font-weight:500;';
+                    dragImage.style.cssText = 'position:absolute;top:-1000px;padding:8px 12px;background:#CA8A04;color:#000;border-radius:4px;font-weight:500;';
                     document.body.appendChild(dragImage);
                     e.dataTransfer.setDragImage(dragImage, 0, 0);
                     setTimeout(() => dragImage.remove(), 0);
