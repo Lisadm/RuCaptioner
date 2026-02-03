@@ -13,8 +13,9 @@ alembic>=1.13.0
 # Image Processing
 pillow>=10.1.0
 
-# HTTP Client (for vision model backends)
+# HTTP Client (for vision model backends and testing)
 aiohttp>=3.9.0
+httpx>=0.27.0
 
 # File uploads
 python-multipart>=0.0.6
@@ -24,3 +25,7 @@ pyyaml>=6.0.1
 
 # Data validation (comes with FastAPI but explicit for clarity)
 pydantic>=2.0.0
+
+# Testing
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
