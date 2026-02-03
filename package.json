@@ -1,6 +1,6 @@
 {
   "name": "rucaptioner",
-  "version": "1.1.0",
+  "version": "1.0.1",
   "description": "LORA Dataset Management System - Desktop app for managing image datasets with AI-powered captioning",
   "main": "electron/main.js",
   "scripts": {
