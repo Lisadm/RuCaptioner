@@ -22,6 +22,13 @@ const API = {
     },
 
     /**
+     * Get system health and version
+     */
+    async getHealth() {
+        return this.request('/system/health');
+    },
+
+    /**
      * Make an API request
      */
     async request(endpoint, options = {}) {

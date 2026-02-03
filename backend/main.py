@@ -87,22 +87,6 @@ async def lifespan(app: FastAPI):
     (PROJECT_ROOT / "data" / "logs").mkdir(parents=True, exist_ok=True)
     
     # Initialize database
-    # Run Anti-Agent Fix to ensure schema is correct before Init
-    try:
-        # Add project root to sys.path to find anti_agent_fix.py
-        project_root = str(Path(__file__).resolve().parent.parent)
-        if project_root not in sys.path:
-            sys.path.append(project_root)
-        
-        import anti_agent_fix
-        logger.info("Running Anti-Agent DB Repair...")
-        if anti_agent_fix.fix_database():
-            logger.info("Anti-Agent DB Repair successful")
-        else:
-            logger.warning("Anti-Agent DB Repair reported failure")
-    except Exception as e:
-        logger.error(f"Failed to run Anti-Agent Fix: {e}")
-
     init_db()
     logger.info("Database initialized")
     # Explicit signal for Electron to know we are ready (bypassing logging formatting issues)

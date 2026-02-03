@@ -125,6 +125,18 @@ const App = {
             const config = await API.getConfig();
             this.populateSettingsForm(config);
             this.settingsModal.show();
+
+            // Fetch and display version
+            try {
+                const health = await API.getHealth();
+                const versionEl = document.getElementById('appVersion');
+                if (versionEl && health.version) {
+                    versionEl.textContent = `v${health.version}`;
+                }
+            } catch (vErr) {
+                console.warn('Failed to fetch version:', vErr);
+            }
+
         } catch (error) {
             Utils.showToast(i18n.t('settings_load_failed') + ': ' + error.message, 'danger');
         }
