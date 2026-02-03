@@ -320,6 +320,41 @@ const Datasets = {
             this.lastGeneratedCaption = null;
         });
 
+        // Infinite scroll handler (hybrid: grid + window)
+        const scrollHandler = () => {
+            if (App.currentView !== 'datasets') return;
+
+            const grid = document.getElementById('datasetImageGrid');
+            if (!grid) return;
+
+            // 1. Grid scroll (primary)
+            const isGridScrolling = grid.scrollHeight > grid.clientHeight;
+            const gridBottom = grid.scrollTop + grid.clientHeight;
+            const gridThreshold = grid.scrollHeight - 300;
+
+            // 2. Window scroll (fallback/mobile)
+            const windowBottom = window.scrollY + window.innerHeight;
+            const windowThreshold = document.body.offsetHeight - 300;
+
+            let shouldLoad = false;
+            if (isGridScrolling && gridBottom >= gridThreshold) shouldLoad = true;
+            if (!isGridScrolling && windowBottom >= windowThreshold) shouldLoad = true;
+
+            if (shouldLoad) {
+                if (this.hasMoreImages && !this.isLoadingImages && this.currentDatasetId) {
+                    Utils.log('debug', 'datasets', 'Infinite scroll triggered', { isGridScrolling });
+                    this.loadDatasetImages(this.currentDatasetId, this.currentImagePage + 1, false);
+                }
+            }
+        };
+
+        // Attach listeners
+        const imageGrid = document.getElementById('datasetImageGrid');
+        if (imageGrid) imageGrid.addEventListener('scroll', scrollHandler);
+        window.addEventListener('scroll', scrollHandler);
+
+
+
     },
 
     /**
@@ -787,23 +822,35 @@ const Datasets = {
                 });
             });
 
-            // Setup infinite scroll on first load
-            if (reset) {
-                this.setupDatasetInfiniteScroll(grid);
-            }
+            // setupDatasetInfiniteScroll is deprecated - using hybrid listener in bindEvents
 
-            // Add/remove loading indicator
-            let indicator = document.getElementById('datasetLoadMoreIndicator');
-            if (this.hasMoreImages) {
-                if (!indicator) {
-                    indicator = document.createElement('div');
-                    indicator.id = 'datasetLoadMoreIndicator';
-                    indicator.className = 'text-center text-muted py-2';
-                    indicator.innerHTML = '<small><i class="bi bi-arrow-down-circle"></i> Scroll for more...</small>';
-                    grid.appendChild(indicator);
+            // Render "Load More" button / indicator
+            const paginationContainer = document.getElementById('datasetPaginationContainer');
+            if (paginationContainer) {
+                if (this.hasMoreImages) {
+                    paginationContainer.innerHTML = `
+                        <button class="btn btn-outline-primary w-100" id="datasetLoadMoreBtn">
+                            <i class="bi bi-arrow-down-circle me-2"></i> Load More Images
+                        </button>
+                    `;
+                    document.getElementById('datasetLoadMoreBtn')?.addEventListener('click', () => {
+                        this.loadDatasetImages(datasetId, this.currentImagePage + 1, false);
+                    });
+                } else {
+                    paginationContainer.innerHTML = '';
                 }
-            } else if (indicator) {
-                indicator.remove();
+            } else {
+                // Fallback if container missing
+                let indicator = document.getElementById('datasetLoadMoreIndicator');
+                if (this.hasMoreImages) {
+                    if (!indicator) {
+                        indicator = document.createElement('div');
+                        indicator.id = 'datasetLoadMoreIndicator';
+                        indicator.className = 'text-center text-muted py-2';
+                        indicator.innerHTML = '<small>Scroll for more...</small>';
+                        grid.appendChild(indicator);
+                    }
+                } else if (indicator) indicator.remove();
             }
 
         } catch (error) {

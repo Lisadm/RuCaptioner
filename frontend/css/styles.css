@@ -62,6 +62,64 @@ body {
     padding: 0;
 }
 
+/* DATASETS View Layout (Flexbox for correct scrolling) */
+#view-datasets {
+    display: flex;
+    flex-direction: column;
+}
+
+#view-datasets .row {
+    height: 100%;
+}
+
+#view-datasets .col-md-8,
+#view-datasets .col-lg-9 {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+#datasetDetailPanel {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Make only the last card (Images) grow to fill space */
+#datasetDetailPanel > .card:last-child {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Constrain height */
+    margin-bottom: 0 !important;
+}
+
+#datasetDetailPanel > .card:last-child .card-body {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+}
+
+/* Ensure dataset list performs nicely */
+#view-datasets .col-md-4,
+#view-datasets .col-lg-3 {
+    height: 100%;
+}
+
+#view-datasets .col-md-4 .card,
+#view-datasets .col-lg-3 .card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+#datasetList {
+    overflow-y: auto;
+    flex: 1;
+}
+
 /* Ensure toolbar doesn't shrink */
 #view-folders .card-body>.d-flex.gap-2.mb-3 {
     padding: 1rem 1rem 0 1rem;

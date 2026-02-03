@@ -94,14 +94,18 @@ chmod +x install.sh
 
 ## Запуск
 
-### Windows
+### Portable-версия (Рекомендуется)
+1. Скачайте ZIP-архив.
+2. Распакуйте в любую папку.
+3. Запустите **`RuCaptioner.exe`**.
 
+### Из исходного кода (Разработчикам)
+**Windows:**
 ```batch
 start.bat
 ```
 
-### Linux/macOS
-
+**Linux/macOS:**
 ```bash
 ./start.sh
 ```
