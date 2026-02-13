@@ -1,12 +1,12 @@
 {
   "name": "rucaptioner",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "LORA Dataset Management System - Desktop app for managing image datasets with AI-powered captioning",
   "main": "electron/main.js",
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
-    "build-backend": "pyinstaller run_backend.py --name backend --onefile --hidden-import=sqlalchemy",
+    "build-backend": "pyinstaller backend.spec",
     "dist": "npm run build-backend && electron-builder"
   },
   "build": {
