@@ -1,4 +1,4 @@
-# RuCaptioner v1.0.2 - Premium Gold Edition
+# RuCaptioner v1.0.3 - Premium Gold Edition
 
 ### 🆕 Новое в этой версии:
 - **Premium Gold UI**: Полный ребрендинг интерфейса. Эстетика Swiss Minimalism + Glassmorphism.

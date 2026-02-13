@@ -571,6 +571,8 @@ kbd {
     height: 1.5rem;
     opacity: 0;
     transition: opacity 0.2s ease;
+    z-index: 10;
+    cursor: pointer;
 }
 
 .image-card:hover .select-checkbox,
