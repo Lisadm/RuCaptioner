@@ -681,7 +681,9 @@ const Folders = {
 
         return `
             <div class="image-card draggable ${isSelected ? 'selected' : ''}" data-file-id="${file.id}" draggable="true">
-                <input type="checkbox" class="form-check-input select-checkbox" ${isSelected ? 'checked' : ''} onmousedown="event.stopPropagation()" ondragstart="return false;">
+                <div class="checkbox-area">
+                    <input type="checkbox" class="form-check-input select-checkbox" ${isSelected ? 'checked' : ''}>
+                </div>
                 <img src="${API.getThumbnailUrl(file.id)}" alt="${Utils.escapeHtml(file.filename)}" loading="lazy">
                 ${file.has_caption ? '<span class="badge bg-success caption-badge"><i class="bi bi-chat-quote-fill"></i></span>' : ''}
                 ${qualityClass ? `<span class="quality-indicator ${qualityClass}"></span>` : ''}
@@ -698,11 +700,13 @@ const Folders = {
     bindImageCardEvents() {
         document.querySelectorAll('#imageGrid .image-card').forEach(card => {
             const fileId = card.dataset.fileId;
-            const checkbox = card.querySelector('.select-checkbox');
+            const checkboxArea = card.querySelector('.checkbox-area');
+            const checkbox = checkboxArea.querySelector('input');
 
             // Card click - handle selection and details
             card.addEventListener('click', (e) => {
-                if (e.target === checkbox) return; // Don't trigger on checkbox click
+                // If the click originated from the checkbox area, ignore it here
+                if (checkboxArea.contains(e.target)) return;
 
                 // Check for modifier keys
                 if (e.ctrlKey || e.metaKey) {
@@ -719,9 +723,25 @@ const Folders = {
                 }
             });
 
-            // Checkbox click - toggle selection
-            checkbox.addEventListener('click', (e) => {
+            // Checkbox Area Events - Isolate from Card Dragging
+
+            // 1. Prevent drag start on the checkbox area essential!
+            checkboxArea.addEventListener('dragstart', (e) => {
+                e.preventDefault();
                 e.stopPropagation();
+                return false;
+            });
+
+            // 2. Prevent mousedown propagation to card (which starts drag)
+            checkboxArea.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+            });
+
+            // 3. Handle click manually
+            checkboxArea.addEventListener('click', (e) => {
+                e.stopPropagation(); // Stop bubbling to card
+                e.preventDefault(); // Prevent default checkbox toggle (we do it manually)
+
                 this.toggleFileSelection(fileId, card, checkbox);
             });
 

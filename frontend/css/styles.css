@@ -549,24 +549,36 @@ kbd {
     opacity: 1;
 }
 
-/* Checkbox High Priority */
-.image-card .select-checkbox {
+/* Checkbox Receiver Area (High Priority) */
+.image-card .checkbox-area {
     position: absolute;
-    top: 0.5rem;
-    left: 0.5rem;
+    top: 0;
+    left: 0;
+    width: 40px;
+    /* Generous hit area */
+    height: 40px;
+    z-index: 100 !important;
+    /* Force on top of everything */
+    cursor: pointer;
+    display: flex;
+    /* Center the input visually */
+    align-items: center;
+    justify-content: center;
+}
+
+.image-card .select-checkbox {
     width: 1.5rem;
     height: 1.5rem;
+    cursor: pointer;
+    pointer-events: none;
+    /* Pass events to wrapper */
     opacity: 0;
     transition: opacity 0.2s ease;
-    z-index: 50 !important;
-    /* Force on top */
-    cursor: pointer;
-    pointer-events: auto;
-    /* Ensure it catches events */
 }
 
 .image-card:hover .select-checkbox,
-.image-card.selected .select-checkbox {
+.image-card.selected .select-checkbox,
+.image-card .checkbox-area:hover .select-checkbox {
     opacity: 1;
 }
 
