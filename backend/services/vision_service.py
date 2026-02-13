@@ -314,6 +314,17 @@ English translation:"""
         self.db.refresh(job)
         return job
     
+    def clear_all_jobs(self) -> int:
+        """Delete all jobs from the database."""
+        # Cancel any running jobs first
+        for job_id in list(self._active_jobs.keys()):
+            del self._active_jobs[job_id]
+        
+        # Delete all jobs
+        count = self.db.query(CaptionJob).delete()
+        self.db.commit()
+        return count
+    
     async def start_auto_caption_job(
         self,
         caption_set_id: str,
@@ -470,7 +481,7 @@ English translation:"""
             query = self.db.query(DatasetFile.file_id).filter(
                 DatasetFile.dataset_id == cs_dataset_id,
                 DatasetFile.excluded == False
-            )
+            ).order_by(DatasetFile.order_index, DatasetFile.file_id)
             
             # Only skip existing captions if overwrite_existing is False
             if not job.overwrite_existing:
@@ -483,6 +494,17 @@ English translation:"""
             
             # Extract just the IDs as a list
             file_ids = [f[0] for f in file_ids_to_process]
+
+            # If overwriting, we need to skip files that were already processed in this job run
+            # (completed_files + failed_files)
+            if job.overwrite_existing and (job.completed_files > 0 or job.failed_files > 0):
+                processed_count = job.completed_files + job.failed_files
+                if processed_count < len(file_ids):
+                    logger.info(f"Resuming job {job_id}: skipping first {processed_count} already processed files")
+                    file_ids = file_ids[processed_count:]
+                else:
+                    logger.info(f"Resuming job {job_id}: all files appear to be processed")
+                    file_ids = []
             
             logger.info(f"Caption job {job_id}: {len(file_ids)} files remaining to process")
             
@@ -539,10 +561,9 @@ English translation:"""
                         existing_caption.source = "generated"
                         existing_caption.vision_model = job.vision_model
                         existing_caption.quality_score = result.quality_score
-                        existing_caption.quality_score = result.quality_score
                         existing_caption.quality_flags = json.dumps(result.quality_flags) if result.quality_flags else None
-                        if result.get("caption_ru"):
-                            existing_caption.caption_ru = result.get("caption_ru")
+                        if result.caption_ru:
+                            existing_caption.caption_ru = result.caption_ru
                     else:
                         # Create new caption
                         caption = Caption(
@@ -553,7 +574,7 @@ English translation:"""
                             vision_model=job.vision_model,
                             quality_score=result.quality_score,
                             quality_flags=json.dumps(result.quality_flags) if result.quality_flags else None,
-                            caption_ru=result.get("caption_ru")
+                            caption_ru=result.caption_ru
                         )
                         self.db.add(caption)
                     
@@ -976,6 +997,7 @@ Output format (JSON only, no other text):
         
         return {
             "caption": caption,
+            "caption_ru": None,
             "quality_score": None,
             "quality_flags": None
         }

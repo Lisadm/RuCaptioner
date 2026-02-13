@@ -18,6 +18,7 @@ const Jobs = {
      */
     bindEvents() {
         document.getElementById('refreshJobsBtn').addEventListener('click', () => this.loadJobs());
+        document.getElementById('clearAllJobsBtn')?.addEventListener('click', () => this.clearAllJobs());
 
         // Start auto-caption button in modal
         document.getElementById('startAutoCaptionBtn').addEventListener('click', () => this.startAutoCaption());
@@ -66,9 +67,11 @@ const Jobs = {
      * Render a job card
      */
     renderJobCard(job) {
-        const percent = job.total_files > 0
-            ? Math.round((job.completed_files / job.total_files) * 100)
-            : 0;
+        const processed = (job.completed_files || 0) + (job.failed_files || 0);
+        const total = job.total_files || 0;
+        const rawPercent = total > 0 ? (processed / total) * 100 : 0;
+        const percent = Math.min(Math.round(rawPercent), 100);
+        const displayProcessed = Math.min(processed, total);
 
         const statusClass = `job-status-${job.status}`;
 
@@ -94,7 +97,7 @@ const Jobs = {
                 
                 <div class="job-progress">
                     <div class="d-flex justify-content-between mb-1">
-                        <small>${job.completed_files} / ${job.total_files} files</small>
+                        <small>${displayProcessed} / ${total} files</small>
                         <small>${percent}%</small>
                     </div>
                     <div class="progress" style="height: 8px;">
@@ -256,6 +259,23 @@ const Jobs = {
                     this.loadJobs();
                 }
             }, 3000);
+        }
+    },
+
+    /**
+     * Clear all jobs
+     */
+    async clearAllJobs() {
+        if (!await Utils.confirm('Удалить все задачи? Это действие необратимо.')) {
+            return;
+        }
+
+        try {
+            const result = await API.clearAllJobs();
+            Utils.showToast(`Удалено задач: ${result.deleted}`, 'success');
+            this.loadJobs();
+        } catch (error) {
+            Utils.showToast('Ошибка при удалении: ' + error.message, 'error');
         }
     }
 };

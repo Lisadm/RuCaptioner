@@ -1,0 +1,7 @@
+# Torch and TorchAO dependencies
+# For GPU support (CUDA 12.8 nightly)
+--index-url https://download.pytorch.org/whl/nightly/cu128
+torch
+torchvision
+torchaudio
+torchao --pre

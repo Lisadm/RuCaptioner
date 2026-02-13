@@ -339,6 +339,10 @@ const API = {
         return this.request(`/vision/jobs/${jobId}/cancel`, { method: 'POST' });
     },
 
+    async clearAllJobs() {
+        return this.request('/vision/jobs', { method: 'DELETE' });
+    },
+
     // ============ Export Endpoints ============
 
     async startExport(datasetId, options) {

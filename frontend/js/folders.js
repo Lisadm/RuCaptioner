@@ -633,37 +633,43 @@ const Folders = {
             }
 
         } catch (error) {
-            grid.innerHTML = Utils.emptyState('bi-exclamation-triangle', 'Error loading files', error.message);
+            if (this.currentPage === 1) {
+                grid.innerHTML = Utils.emptyState('bi-exclamation-triangle', 'Error loading files', error.message);
+            }
             Utils.showToast('Failed to load files: ' + error.message, 'error');
         } finally {
             this.isLoading = false;
         }
     },
 
-    /**
-     * Setup infinite scroll detection
-     */
     setupInfiniteScroll(grid) {
+        // Use the grid directly since it has overflow:auto and its own scrollbar
+        if (!grid) return;
+
         // Remove any existing scroll listener
         if (this._scrollHandler) {
             grid.removeEventListener('scroll', this._scrollHandler);
         }
 
         this._scrollHandler = () => {
-            if (this.isLoading || !this.hasMoreFiles) return;
+            if (this.isLoading || !this.hasMoreFiles || !this.currentFolderId) return;
 
-            // Check if user scrolled near bottom (within 500px)
+            // Use grid for scroll positions since it has the scrollbar
             const scrollTop = grid.scrollTop;
             const scrollHeight = grid.scrollHeight;
             const clientHeight = grid.clientHeight;
 
-            if (scrollTop + clientHeight >= scrollHeight - 500) {
-                // Load next page
+            // Trigger when within 1000px of bottom
+            if (scrollTop + clientHeight >= scrollHeight - 1000) {
+                console.log('[Folders] Scroll threshold reached, loading page', this.currentPage + 1);
                 this.loadFolderFiles(this.currentFolderId, this.currentPage + 1, this.currentFilter, false);
             }
         };
 
         grid.addEventListener('scroll', this._scrollHandler);
+
+        // Initial check in case content doesn't fill the screen
+        setTimeout(() => this._scrollHandler(), 600);
     },
 
     /**

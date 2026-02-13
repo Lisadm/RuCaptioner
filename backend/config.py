@@ -30,7 +30,8 @@ def get_app_data_dir():
         app_root = exe_path.parent.parent.parent
         
         app_data = app_root / 'data'
-        app_data.mkdir(parents=True, exist_ok=True)
+        # Ensure subdirectories exist
+        (app_data / 'config').mkdir(parents=True, exist_ok=True)
         return app_data
     return PROJECT_ROOT
 
@@ -108,7 +109,7 @@ class ConfigLoader:
     """Load and manage application configuration."""
     
     def __init__(self, config_dir: Optional[Path] = None):
-        self.config_dir = config_dir or PROJECT_ROOT / "config"
+        self.config_dir = config_dir or APP_DATA_DIR / "config"
         self._settings: Optional[Settings] = None
     
     def load_yaml(self, file_path: Path) -> Dict[str, Any]:
@@ -130,8 +131,12 @@ class ConfigLoader:
             file_path = self.config_dir / "settings.yaml"
         
         if not file_path.exists():
-            # Try template if settings.yaml doesn't exist
+            # Try template in current config_dir (persistent)
             template_path = self.config_dir / "settings.yaml.template"
+            if not template_path.exists():
+                # Try template in internal PROJECT_ROOT (internal)
+                template_path = PROJECT_ROOT / "config" / "settings.yaml.template"
+            
             if template_path.exists():
                 logger.info(f"Using template config: {template_path}")
                 file_path = template_path

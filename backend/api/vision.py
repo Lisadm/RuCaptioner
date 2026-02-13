@@ -91,6 +91,14 @@ def list_caption_jobs(
     return service.list_jobs(status_filter=status_filter)
 
 
+@router.delete("/jobs")
+def clear_all_caption_jobs(db: Session = Depends(get_db)):
+    """Delete all caption generation jobs."""
+    service = VisionService(db)
+    count = service.clear_all_jobs()
+    return {"deleted": count}
+
+
 @router.get("/jobs/{job_id}", response_model=CaptionJobResponse)
 def get_caption_job(job_id: str, db: Session = Depends(get_db)):
     """Get status of a caption generation job."""

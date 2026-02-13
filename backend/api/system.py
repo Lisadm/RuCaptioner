@@ -67,7 +67,7 @@ def get_system_stats(db: Session = Depends(get_db)):
     database_size = db_path.stat().st_size if db_path.exists() else 0
     
     # Get thumbnail cache size
-    thumbnail_dir = PROJECT_ROOT / settings.thumbnails.cache_path
+    thumbnail_dir = Path(settings.thumbnails.cache_path)
     thumbnail_size = 0
     if thumbnail_dir.exists():
         for f in thumbnail_dir.glob("*"):
@@ -123,9 +123,11 @@ def get_config():
 async def save_config(config: dict):
     """Save system configuration to settings.yaml."""
     import yaml
-    from ..config import PROJECT_ROOT, get_config_loader
+    from ..config import get_config_loader
     
-    config_path = PROJECT_ROOT / "config" / "settings.yaml"
+    config_dir = get_config_loader().config_dir
+    config_dir.mkdir(parents=True, exist_ok=True)
+    config_path = config_dir / "settings.yaml"
     
     # Load existing config to preserve comments structure
     existing = {}

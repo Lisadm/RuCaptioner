@@ -17,8 +17,8 @@ const Datasets = {
     totalDatasetFiles: 0,
     needsRefresh: false,  // Track if dataset images need refresh
     lastModifiedDatasetId: null,  // Track which dataset was modified
-    imagePageSize: 50,
-    totalDatasetFiles: 0,
+    _scrollHandler: null, // Store reference for listener management
+    _intersectionObserver: null, // Store reference for observer
 
     // Prompt template (not used anymore in UI after moving to curated templates)
     promptTemplates: {},
@@ -145,9 +145,59 @@ const Datasets = {
     },
 
     /**
+     * Named scroll handler for the dataset image grid
+     */
+    handleScroll() {
+        if (this.hasMoreImages && !this.isLoadingImages && this.currentDatasetId) {
+            const grid = document.getElementById('datasetImageGrid');
+            if (!grid) return;
+
+            const container = grid.parentElement; // The .card-body with overflow-y: auto
+            if (!container) return;
+
+            const distanceToBottom = container.scrollHeight - (container.scrollTop + container.clientHeight);
+            if (distanceToBottom < 1000) {
+                console.log('[Datasets] Infinite scroll triggered via scroll event');
+                this.loadDatasetImages(this.currentDatasetId, this.currentImagePage + 1, false);
+            }
+        }
+    },
+
+    setupObserver() {
+        if (this._intersectionObserver) {
+            this._intersectionObserver.disconnect();
+        }
+
+        const grid = document.getElementById('datasetImageGrid');
+        const scrollRoot = grid ? grid.parentElement : null; // This is the .card-body with overflow-y: auto
+
+        if (!scrollRoot) return;
+
+        this._intersectionObserver = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting) {
+                if (this.hasMoreImages && !this.isLoadingImages && this.currentDatasetId) {
+                    console.log('[Datasets] Infinite scroll triggered via observer');
+                    this.loadDatasetImages(this.currentDatasetId, this.currentImagePage + 1, false);
+                }
+            }
+        }, {
+            root: scrollRoot,
+            rootMargin: '400px', // Start loading 400px before reaching the end
+            threshold: 0.1
+        });
+
+        const sentinel = document.getElementById('datasetPaginationContainer');
+        if (sentinel) {
+            this._intersectionObserver.observe(sentinel);
+        }
+    },
+
+    /**
      * Bind event listeners
      */
     bindEvents() {
+        // Initialize the scroll handler reference
+        this._scrollHandler = () => this.handleScroll();
         // Create dataset button
         document.getElementById('createDatasetBtn').addEventListener('click', () => {
             const modal = new bootstrap.Modal(document.getElementById('createDatasetModal'));
@@ -319,42 +369,13 @@ const Datasets = {
             // Clear generation metadata when user manually edits the text
             this.lastGeneratedCaption = null;
         });
-
-        // Infinite scroll handler (hybrid: grid + window)
-        const scrollHandler = () => {
-            if (App.currentView !== 'datasets') return;
-
-            const grid = document.getElementById('datasetImageGrid');
-            if (!grid) return;
-
-            // 1. Grid scroll (primary)
-            const isGridScrolling = grid.scrollHeight > grid.clientHeight;
-            const gridBottom = grid.scrollTop + grid.clientHeight;
-            const gridThreshold = grid.scrollHeight - 300;
-
-            // 2. Window scroll (fallback/mobile)
-            const windowBottom = window.scrollY + window.innerHeight;
-            const windowThreshold = document.body.offsetHeight - 300;
-
-            let shouldLoad = false;
-            if (isGridScrolling && gridBottom >= gridThreshold) shouldLoad = true;
-            if (!isGridScrolling && windowBottom >= windowThreshold) shouldLoad = true;
-
-            if (shouldLoad) {
-                if (this.hasMoreImages && !this.isLoadingImages && this.currentDatasetId) {
-                    Utils.log('debug', 'datasets', 'Infinite scroll triggered', { isGridScrolling });
-                    this.loadDatasetImages(this.currentDatasetId, this.currentImagePage + 1, false);
-                }
-            }
-        };
-
-        // Attach listeners
-        const imageGrid = document.getElementById('datasetImageGrid');
-        if (imageGrid) imageGrid.addEventListener('scroll', scrollHandler);
-        window.addEventListener('scroll', scrollHandler);
-
-
-
+        // Attach scroll listener to the actual scrolling container (.card-body)
+        const grid = document.getElementById('datasetImageGrid');
+        const container = grid ? grid.parentElement : null;
+        if (container) {
+            container.removeEventListener('scroll', this._scrollHandler);
+            container.addEventListener('scroll', this._scrollHandler);
+        }
     },
 
     /**
@@ -502,6 +523,7 @@ const Datasets = {
      */
     async selectDataset(datasetId) {
         this.currentDatasetId = datasetId;
+        this.currentCaptionSetId = null;
 
         // Update active state
         document.querySelectorAll('#datasetList [data-dataset-id]').forEach(el => {
@@ -520,6 +542,15 @@ const Datasets = {
             this.loadCaptionSets(datasetId),
             this.loadDatasetImages(datasetId, 1, true)
         ]);
+
+        // Setup scroll listener and observer for infinite scroll
+        const grid = document.getElementById('datasetImageGrid');
+        const container = grid ? grid.parentElement : null;
+        if (container) {
+            container.removeEventListener('scroll', this._scrollHandler);
+            container.addEventListener('scroll', this._scrollHandler);
+        }
+        this.setupObserver();
     },
 
     /**
@@ -850,8 +881,24 @@ const Datasets = {
                         indicator.innerHTML = '<small>Scroll for more...</small>';
                         grid.appendChild(indicator);
                     }
-                } else if (indicator) indicator.remove();
+                } else if (indicator) {
+                    indicator.remove();
+                }
             }
+
+            // PROACTIVE AUTO-FILL: If the screen is not full yet, load more images automatically
+            setTimeout(() => {
+                const currentGrid = document.getElementById('datasetImageGrid');
+                if (!currentGrid) return;
+
+                const container = currentGrid.parentElement; // This is the scrollable card-body
+                if (!container) return;
+
+                const needsMore = currentGrid.scrollHeight <= container.clientHeight + 600;
+                if (this.hasMoreImages && !this.isLoadingImages && needsMore) {
+                    this.loadDatasetImages(datasetId, this.currentImagePage + 1, false);
+                }
+            }, 800);
 
         } catch (error) {
             grid.innerHTML = Utils.emptyState('bi-exclamation-triangle', 'Error loading images', error.message);

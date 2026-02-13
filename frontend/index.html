@@ -304,9 +304,15 @@
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <span><i class="bi bi-cpu me-2"></i><span data-i18n="nav_jobs">Caption Generation
                                 Jobs</span></span>
-                        <button class="btn btn-sm btn-outline-secondary" id="refreshJobsBtn">
-                            <i class="bi bi-arrow-clockwise"></i> Refresh
-                        </button>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-outline-secondary" id="refreshJobsBtn">
+                                <i class="bi bi-arrow-clockwise"></i> Refresh
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" id="clearAllJobsBtn"
+                                title="Удалить все задачи">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="card-body overflow-auto">
                         <div id="jobsList">
