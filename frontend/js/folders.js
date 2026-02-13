@@ -680,11 +680,11 @@ const Folders = {
         const qualityClass = Utils.getQualityClass(file.quality_score);
 
         return `
-            <div class="image-card draggable ${isSelected ? 'selected' : ''}" data-file-id="${file.id}" draggable="true">
+            <div class="image-card draggable ${isSelected ? 'selected' : ''}" data-file-id="${file.id}">
                 <div class="checkbox-area">
                     <input type="checkbox" class="form-check-input select-checkbox" ${isSelected ? 'checked' : ''}>
                 </div>
-                <img src="${API.getThumbnailUrl(file.id)}" alt="${Utils.escapeHtml(file.filename)}" loading="lazy">
+                <img src="${API.getThumbnailUrl(file.id)}" alt="${Utils.escapeHtml(file.filename)}" loading="lazy" draggable="true">
                 ${file.has_caption ? '<span class="badge bg-success caption-badge"><i class="bi bi-chat-quote-fill"></i></span>' : ''}
                 ${qualityClass ? `<span class="quality-indicator ${qualityClass}"></span>` : ''}
                 <div class="image-overlay">
@@ -739,6 +739,7 @@ const Folders = {
 
             // 3. Handle click manually
             checkboxArea.addEventListener('click', (e) => {
+                console.log('Checkbox click intercepted', fileId);
                 e.stopPropagation(); // Stop bubbling to card
                 e.preventDefault(); // Prevent default checkbox toggle (we do it manually)
 

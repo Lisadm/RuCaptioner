@@ -524,6 +524,8 @@ kbd {
     height: 100%;
     object-fit: cover;
     transition: transform 0.3s ease;
+    cursor: grab;
+    /* Indicate draggable */
 }
 
 .image-card:hover img {
@@ -572,14 +574,18 @@ kbd {
     cursor: pointer;
     pointer-events: none;
     /* Pass events to wrapper */
-    opacity: 0;
+    opacity: 0.4;
+    /* Always visible */
     transition: opacity 0.2s ease;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 4px;
 }
 
 .image-card:hover .select-checkbox,
 .image-card.selected .select-checkbox,
 .image-card .checkbox-area:hover .select-checkbox {
     opacity: 1;
+    background-color: rgba(0, 0, 0, 0.7);
 }
 
 .image-card .caption-badge {
