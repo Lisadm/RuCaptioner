@@ -681,7 +681,7 @@ const Folders = {
 
         return `
             <div class="image-card draggable ${isSelected ? 'selected' : ''}" data-file-id="${file.id}" draggable="true">
-                <input type="checkbox" class="form-check-input select-checkbox" ${isSelected ? 'checked' : ''}>
+                <input type="checkbox" class="form-check-input select-checkbox" ${isSelected ? 'checked' : ''} onmousedown="event.stopPropagation()" ondragstart="return false;">
                 <img src="${API.getThumbnailUrl(file.id)}" alt="${Utils.escapeHtml(file.filename)}" loading="lazy">
                 ${file.has_caption ? '<span class="badge bg-success caption-badge"><i class="bi bi-chat-quote-fill"></i></span>' : ''}
                 ${qualityClass ? `<span class="quality-indicator ${qualityClass}"></span>` : ''}
